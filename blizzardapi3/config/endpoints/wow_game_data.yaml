@@ -1,0 +1,146 @@
+version: "3.0"
+game: "wow"
+api_type: "game_data"
+
+# Reusable pattern templates
+pattern_templates:
+  simple_index:
+    path_template: "/data/wow/{resource}/index"
+    params: ["region", "locale"]
+    namespace_type: "static"
+    supports_classic: false
+
+  get_by_id:
+    path_template: "/data/wow/{resource}/{id}"
+    params: ["region", "locale", "id"]
+    namespace_type: "static"
+    supports_classic: false
+
+  media:
+    path_template: "/data/wow/media/{resource}/{id}"
+    params: ["region", "locale", "id"]
+    namespace_type: "static"
+    supports_classic: false
+
+  search:
+    path_template: "/data/wow/search/{resource}"
+    params: ["region", "locale"]
+    namespace_type: "static"
+    supports_classic: false
+    accepts_kwargs: true
+
+# Endpoint definitions
+endpoints:
+  # Achievement API
+  - method_name: "get_achievement_categories_index"
+    pattern: "simple_index"
+    resource: "achievement-category"
+    description: "Get an index of achievement categories"
+    response_model: "AchievementCategoryIndex"
+
+  - method_name: "get_achievement_category"
+    pattern: "get_by_id"
+    resource: "achievement-category"
+    param_name: "category_id"
+    description: "Get an achievement category by ID"
+    response_model: "AchievementCategory"
+
+  - method_name: "get_achievements_index"
+    pattern: "simple_index"
+    resource: "achievement"
+    description: "Get an index of achievements"
+    response_model: "AchievementIndex"
+
+  - method_name: "get_achievement"
+    pattern: "get_by_id"
+    resource: "achievement"
+    param_name: "achievement_id"
+    description: "Get an achievement by ID"
+    response_model: "Achievement"
+
+  - method_name: "get_achievement_media"
+    pattern: "media"
+    resource: "achievement"
+    param_name: "achievement_id"
+    description: "Get media for an achievement"
+    response_model: "Media"
+
+  # Housing API - Decor
+  - method_name: "get_decor_index"
+    pattern: "simple_index"
+    resource: "decor"
+    description: "Get an index of decor items"
+    response_model: "DecorIndex"
+
+  - method_name: "get_decor"
+    pattern: "get_by_id"
+    resource: "decor"
+    param_name: "decor_id"
+    description: "Get a decor item by ID"
+    response_model: "Decor"
+
+  - method_name: "search_decor"
+    pattern: "search"
+    resource: "decor"
+    description: "Search for decor items"
+    response_model: "SearchResults"
+
+  # Housing API - Fixture
+  - method_name: "get_fixture_index"
+    pattern: "simple_index"
+    resource: "fixture"
+    description: "Get an index of fixtures"
+    response_model: "FixtureIndex"
+
+  - method_name: "get_fixture"
+    pattern: "get_by_id"
+    resource: "fixture"
+    param_name: "fixture_id"
+    description: "Get a fixture by ID"
+    response_model: "Fixture"
+
+  - method_name: "search_fixture"
+    pattern: "search"
+    resource: "fixture"
+    description: "Search for fixtures"
+    response_model: "SearchResults"
+
+  # Housing API - Fixture Hook
+  - method_name: "get_fixture_hook_index"
+    pattern: "simple_index"
+    resource: "fixture-hook"
+    description: "Get an index of fixture hooks"
+    response_model: "FixtureHookIndex"
+
+  - method_name: "get_fixture_hook"
+    pattern: "get_by_id"
+    resource: "fixture-hook"
+    param_name: "fixture_hook_id"
+    description: "Get a fixture hook by ID"
+    response_model: "FixtureHook"
+
+  - method_name: "search_fixture_hook"
+    pattern: "search"
+    resource: "fixture-hook"
+    description: "Search for fixture hooks"
+    response_model: "SearchResults"
+
+  # Housing API - Room
+  - method_name: "get_room_index"
+    pattern: "simple_index"
+    resource: "room"
+    description: "Get an index of rooms"
+    response_model: "RoomIndex"
+
+  - method_name: "get_room"
+    pattern: "get_by_id"
+    resource: "room"
+    param_name: "room_id"
+    description: "Get a room by ID"
+    response_model: "Room"
+
+  - method_name: "search_room"
+    pattern: "search"
+    resource: "room"
+    description: "Search for rooms"
+    response_model: "SearchResults"
