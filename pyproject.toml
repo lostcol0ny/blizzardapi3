@@ -1,6 +1,6 @@
 [project]
 name = "blizzardapi3"
-version = "3.0.0"
+version = "3.0.1"
 description = "A modern, config-driven Python wrapper for the Blizzard API with async support"
 authors = [{ name = "lostcol0ny", email = "c098os0k@4wrd.cc" }]
 license = "MIT"
@@ -55,7 +55,7 @@ target-version = ["py311", "py312", "py313"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "3.0.1"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
