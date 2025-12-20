@@ -27,10 +27,6 @@ A modern, config-driven Python wrapper for the Blizzard API with full async supp
 ## Installation
 
 ```bash
-# Using uv (recommended)
-uv pip install blizzardapi3
-
-# Using pip
 pip install blizzardapi3
 ```
 
@@ -131,6 +127,7 @@ with BlizzardAPI(client_id, client_secret) as api:
 ### Available Search Methods
 
 #### World of Warcraft Game Data
+
 - `search_azerite_essence()` - Search azerite essences
 - `search_covenant()` - Search covenants
 - `search_creature()` - Search creatures
@@ -144,11 +141,11 @@ with BlizzardAPI(client_id, client_secret) as api:
 
 ### Common Search Parameters
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
+| Parameter       | Description              | Example              |
+| --------------- | ------------------------ | -------------------- |
 | `name.{locale}` | Filter by localized name | `name.en_US: "wall"` |
-| `orderby` | Sort results | `"id"`, `"id:desc"` |
-| `_page` | Page number (1-indexed) | `1`, `2`, `3` |
+| `orderby`       | Sort results             | `"id"`, `"id:desc"`  |
+| `_page`         | Page number (1-indexed)  | `1`, `2`, `3`        |
 
 ### Search Response Structure
 
@@ -191,8 +188,6 @@ with BlizzardAPI(client_id, client_secret) as api:
 ```
 
 ## Comprehensive Examples
-
-Full working examples are available in the [examples/](examples/) directory. Each example uses `python-dotenv` to load credentials from a `.env` file.
 
 ### Character Profile Information
 
@@ -349,12 +344,14 @@ with BlizzardAPI(client_id, client_secret) as api:
 ## Documentation
 
 ### Core Documentation
+
 - **[Search Guide](docs/SEARCH_GUIDE.md)** - Comprehensive guide to using search endpoints with real-world examples
 - **[Search Quick Reference](docs/SEARCH_QUICK_REFERENCE.md)** - Quick reference for all search methods and parameters
 - **[OAuth Guide](docs/OAUTH_GUIDE.md)** - Complete guide to OAuth authorization code flow for user-specific endpoints
 - **[Migration Guide](MIGRATION.md)** - Detailed guide for migrating from blizzardapi2
 
 ### Additional Resources
+
 - [Blizzard API Official Documentation](https://develop.battle.net/documentation)
 - [GitHub Repository](https://github.com/lostcol0ny/blizzardapi3)
 - [Issue Tracker](https://github.com/lostcol0ny/blizzardapi3/issues)
@@ -370,10 +367,7 @@ See [MIGRATION.md](MIGRATION.md) for a detailed guide on migrating from blizzard
 git clone https://github.com/lostcol0ny/blizzardapi3.git
 cd blizzardapi3
 
-# Install development dependencies (using uv - recommended)
-uv pip install -e ".[dev]"
-
-# Or using pip
+# Install development dependencies
 pip install -e ".[dev]"
 
 # Run tests
@@ -397,9 +391,3 @@ BlizzardAPI v3 uses a config-driven architecture:
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details
-
-## Credits
-
-Built with ❤️ by [lostcol0ny](https://github.com/lostcol0ny)
-
-Powered by Claude Sonnet 4.5
