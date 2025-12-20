@@ -43,7 +43,7 @@ class InvalidRegionError(ValidationError):
 
     def __str__(self) -> str:
         """Format invalid region error."""
-        msg = super().__str__()
+        msg = ValidationError.__str__(self)
         if self.valid_regions:
             msg += f" | Valid regions: {', '.join(self.valid_regions)}"
         return msg
@@ -61,7 +61,7 @@ class InvalidLocaleError(ValidationError):
 
     def __str__(self) -> str:
         """Format invalid locale error."""
-        msg = super().__str__()
+        msg = ValidationError.__str__(self)
         if self.valid_locales:
             msg += f" | Valid locales: {', '.join(self.valid_locales)}"
         return msg
@@ -79,7 +79,7 @@ class MissingParameterError(ValidationError):
 
     def __str__(self) -> str:
         """Format missing parameter error."""
-        msg = super().__str__()
+        msg = ValidationError.__str__(self)
         if self.required_params:
             msg += f" | Required: {', '.join(self.required_params)}"
         return msg

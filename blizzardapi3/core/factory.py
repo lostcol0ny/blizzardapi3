@@ -139,8 +139,11 @@ class MethodFactory:
         Returns:
             Synchronous method callable
         """
+        # Capture factory methods in closure
+        build_path = self._build_path
+        build_namespace = self._build_namespace
 
-        def method(self, **kwargs: Any) -> dict[str, Any]:
+        def method(api_instance, **kwargs: Any) -> dict[str, Any]:
             # Validate required params
             for param in params:
                 if param not in kwargs:
@@ -156,11 +159,11 @@ class MethodFactory:
             is_classic = kwargs.pop("is_classic", False)
             access_token = kwargs.pop("access_token", None)
 
-            # Build path
-            path = self._build_path(endpoint, pattern, kwargs)
+            # Build path using factory method
+            path = build_path(endpoint, pattern, kwargs)
 
-            # Build namespace
-            namespace = self._build_namespace(endpoint, pattern, region, is_classic)
+            # Build namespace using factory method
+            namespace = build_namespace(endpoint, pattern, region, is_classic)
 
             # Build query params
             query_params = {"locale": locale}
@@ -177,15 +180,11 @@ class MethodFactory:
             )
 
             # Execute request
-            return self.executor.execute(context, self.client.sync_session)
+            return api_instance.executor.execute(context, api_instance.client.sync_session)
 
         # Set method metadata
         method.__name__ = endpoint.method_name
         method.__doc__ = self._generate_docstring(endpoint, params, is_async=False)
-
-        # Store factory reference for path building
-        method._build_path = self._build_path
-        method._build_namespace = self._build_namespace
 
         return method
 
@@ -202,8 +201,11 @@ class MethodFactory:
         Returns:
             Asynchronous method callable
         """
+        # Capture factory methods in closure
+        build_path = self._build_path
+        build_namespace = self._build_namespace
 
-        async def method(self, **kwargs: Any) -> dict[str, Any]:
+        async def method(api_instance, **kwargs: Any) -> dict[str, Any]:
             # Validate required params
             for param in params:
                 if param not in kwargs:
@@ -219,11 +221,11 @@ class MethodFactory:
             is_classic = kwargs.pop("is_classic", False)
             access_token = kwargs.pop("access_token", None)
 
-            # Build path
-            path = self._build_path(endpoint, pattern, kwargs)
+            # Build path using factory method
+            path = build_path(endpoint, pattern, kwargs)
 
-            # Build namespace
-            namespace = self._build_namespace(endpoint, pattern, region, is_classic)
+            # Build namespace using factory method
+            namespace = build_namespace(endpoint, pattern, region, is_classic)
 
             # Build query params
             query_params = {"locale": locale}
@@ -240,15 +242,11 @@ class MethodFactory:
             )
 
             # Execute request
-            return await self.executor.execute_async(context, self.client.async_session)
+            return await api_instance.executor.execute_async(context, api_instance.client.async_session)
 
         # Set method metadata
         method.__name__ = f"{endpoint.method_name}_async"
         method.__doc__ = self._generate_docstring(endpoint, params, is_async=True)
-
-        # Store factory reference for path building
-        method._build_path = self._build_path
-        method._build_namespace = self._build_namespace
 
         return method
 
