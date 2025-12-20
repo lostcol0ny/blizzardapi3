@@ -45,6 +45,9 @@ dev = [
     "black>=24.4.2,<26.0.0",
     "ruff>=0.3.0,<1.0.0",
 ]
+examples = [
+    "python-dotenv>=1.0.0,<2.0.0",
+]
 
 [tool.black]
 line-length = 120

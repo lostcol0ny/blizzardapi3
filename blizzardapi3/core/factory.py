@@ -90,6 +90,9 @@ class MethodFactory:
         special_params = {"region", "locale", "is_classic", "access_token"}
         for key, value in kwargs.items():
             if key not in special_params:
+                # Convert character_name and realm_slug to lowercase for API compatibility
+                if key in ("character_name", "realm_slug", "name_slug") and isinstance(value, str):
+                    value = value.lower()
                 format_kwargs[key] = value
 
         # Handle generic 'id' parameter
@@ -159,6 +162,12 @@ class MethodFactory:
             is_classic = kwargs.pop("is_classic", False)
             access_token = kwargs.pop("access_token", None)
 
+            # Convert enums to strings
+            if hasattr(region, "value"):
+                region = region.value
+            if hasattr(locale, "value"):
+                locale = locale.value
+
             # Build path using factory method
             path = build_path(endpoint, pattern, kwargs)
 
@@ -220,6 +229,12 @@ class MethodFactory:
             locale = kwargs.pop("locale")
             is_classic = kwargs.pop("is_classic", False)
             access_token = kwargs.pop("access_token", None)
+
+            # Convert enums to strings
+            if hasattr(region, "value"):
+                region = region.value
+            if hasattr(locale, "value"):
+                locale = locale.value
 
             # Build path using factory method
             path = build_path(endpoint, pattern, kwargs)

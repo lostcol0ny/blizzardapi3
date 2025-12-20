@@ -45,14 +45,17 @@ class EndpointDefinition(BaseModel):
     """
 
     method_name: str
-    pattern: str
+    pattern: Optional[str] = None
     resource: str = ""
     path: Optional[str] = None
+    path_template: Optional[str] = None
     params: Optional[list[str]] = None
     param_name: Optional[str] = None
     namespace_type: Optional[str] = None
     namespace_variant: Optional[str] = None
     supports_classic: bool = False
+    accepts_kwargs: bool = False
+    http_method: str = "GET"
     description: str
     response_model: Optional[str] = None
 
@@ -71,7 +74,7 @@ class EndpointConfig(BaseModel):
     version: str
     game: str
     api_type: str
-    pattern_templates: dict[str, PatternTemplate]
+    pattern_templates: Optional[dict[str, PatternTemplate]] = None
     endpoints: list[EndpointDefinition]
 
 
@@ -161,8 +164,21 @@ class EndpointRegistry:
         Raises:
             KeyError: If pattern template not found
         """
+        # If endpoint has custom path_template, create an inline pattern
+        if endpoint.path_template is not None:
+            return PatternTemplate(
+                path_template=endpoint.path_template,
+                params=endpoint.params or [],
+                namespace_type=endpoint.namespace_type or "none",
+                supports_classic=endpoint.supports_classic,
+                accepts_kwargs=endpoint.accepts_kwargs,
+            )
+
+        # Otherwise, resolve from pattern_templates
         config = self.get_config(game, api_type)
-        if endpoint.pattern not in config.pattern_templates:
+        if endpoint.pattern is None:
+            raise KeyError("Endpoint must have either 'pattern' or 'path_template'")
+        if config.pattern_templates is None or endpoint.pattern not in config.pattern_templates:
             raise KeyError(f"Pattern template '{endpoint.pattern}' not found")
         return config.pattern_templates[endpoint.pattern]
 

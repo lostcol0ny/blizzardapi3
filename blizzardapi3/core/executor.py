@@ -60,13 +60,14 @@ class RequestExecutor:
         # Build URL
         url = f"{self.BASE_URL.format(region=context.region)}{context.path}"
 
-        # Prepare params with token
-        params = {**context.query_params, "access_token": token}
+        # Prepare params and headers
+        params = context.query_params
+        headers = {"Authorization": f"Bearer {token}"}
 
         # Execute with retry logic
         for attempt in range(self.MAX_RETRIES + 1):
             try:
-                response = session.get(url, params=params, timeout=30)
+                response = session.get(url, params=params, headers=headers, timeout=30)
 
                 if response.status_code == 200:
                     return response.json()
@@ -75,7 +76,7 @@ class RequestExecutor:
                 if response.status_code == 401 and attempt < self.MAX_RETRIES and not context.access_token:
                     self.token_manager.invalidate()
                     token = self.token_manager.get_token(context.region, session)
-                    params["access_token"] = token
+                    headers["Authorization"] = f"Bearer {token}"
                     continue
 
                 # Handle other errors
@@ -111,13 +112,14 @@ class RequestExecutor:
         # Build URL
         url = f"{self.BASE_URL.format(region=context.region)}{context.path}"
 
-        # Prepare params with token
-        params = {**context.query_params, "access_token": token}
+        # Prepare params and headers
+        params = context.query_params
+        headers = {"Authorization": f"Bearer {token}"}
 
         # Execute with retry logic
         for attempt in range(self.MAX_RETRIES + 1):
             try:
-                async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
 
                     if response.status == 200:
                         return await response.json()
@@ -126,7 +128,7 @@ class RequestExecutor:
                     if response.status == 401 and attempt < self.MAX_RETRIES and not context.access_token:
                         self.token_manager.invalidate()
                         token = await self.token_manager.get_token_async(context.region, session)
-                        params["access_token"] = token
+                        headers["Authorization"] = f"Bearer {token}"
                         continue
 
                     # Handle other errors
