@@ -1,6 +1,5 @@
 """Base API client with session management."""
 
-
 import aiohttp
 import requests
 
