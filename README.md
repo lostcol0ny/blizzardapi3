@@ -348,17 +348,12 @@ with BlizzardAPI(client_id, client_secret) as api:
 - **[Search Guide](docs/SEARCH_GUIDE.md)** - Comprehensive guide to using search endpoints with real-world examples
 - **[Search Quick Reference](docs/SEARCH_QUICK_REFERENCE.md)** - Quick reference for all search methods and parameters
 - **[OAuth Guide](docs/OAUTH_GUIDE.md)** - Complete guide to OAuth authorization code flow for user-specific endpoints
-- **[Migration Guide](MIGRATION.md)** - Detailed guide for migrating from blizzardapi2
 
 ### Additional Resources
 
 - [Blizzard API Official Documentation](https://develop.battle.net/documentation)
 - [GitHub Repository](https://github.com/lostcol0ny/blizzardapi3)
 - [Issue Tracker](https://github.com/lostcol0ny/blizzardapi3/issues)
-
-## Migration from v2
-
-See [MIGRATION.md](MIGRATION.md) for a detailed guide on migrating from blizzardapi2.
 
 ## Development
 
@@ -387,7 +382,3 @@ BlizzardAPI v3 uses a config-driven architecture:
 - **Pydantic Models** - Type-safe response models
 - **Custom Exceptions** - Detailed error hierarchy
 - **Single Session** - Efficient session management with proper cleanup
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details

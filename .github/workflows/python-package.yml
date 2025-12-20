@@ -6,6 +6,13 @@ name: Python package
 on:
   push:
     branches: ["main", "master"]
+    paths:
+      - "**.py"
+      - "**.yml"
+      - "**.yaml"
+      - "pyproject.toml"
+      - "setup.py"
+      - "setup.cfg"
 
 # Add permissions block
 permissions:
