@@ -2,10 +2,12 @@
 
 __version__ = "3.0.0"
 
-# Core imports will be added as we build them
-# from .blizzard_api import BlizzardAPI
+from .blizzard_api import BlizzardAPI
+from .types import Locale, Region
 
 __all__ = [
     "__version__",
-    # "BlizzardAPI",
+    "BlizzardAPI",
+    "Region",
+    "Locale",
 ]
