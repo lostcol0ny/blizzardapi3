@@ -87,3 +87,7 @@ oauth_helper.py
 oauth_manual.py
 get_oauth_url.py
 exchange_code.py
+
+# Node.js (for release-it)
+node_modules/
+package-lock.json
