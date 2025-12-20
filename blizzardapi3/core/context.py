@@ -1,7 +1,7 @@
 """Request context for API calls."""
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -19,5 +19,5 @@ class RequestContext:
     region: str
     path: str
     query_params: dict[str, Any]
-    access_token: Optional[str] = None
+    access_token: str | None = None
     auth_type: str = "client_credentials"

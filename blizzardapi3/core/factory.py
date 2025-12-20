@@ -1,6 +1,7 @@
 """Dynamic method factory for generating API methods from configs."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from .context import RequestContext
 from .executor import RequestExecutor
@@ -24,9 +25,7 @@ class MethodFactory:
         self.executor = executor
         self.registry = registry
 
-    def create_method_pair(
-        self, game: str, api_type: str, endpoint: EndpointDefinition
-    ) -> tuple[Callable, Callable]:
+    def create_method_pair(self, game: str, api_type: str, endpoint: EndpointDefinition) -> tuple[Callable, Callable]:
         """Create sync and async method pair from endpoint definition.
 
         Args:
@@ -185,7 +184,11 @@ class MethodFactory:
 
             # Create request context
             context = RequestContext(
-                region=region, path=path, query_params=query_params, access_token=access_token, auth_type=pattern.auth_type
+                region=region,
+                path=path,
+                query_params=query_params,
+                access_token=access_token,
+                auth_type=pattern.auth_type,
             )
 
             # Execute request
@@ -253,7 +256,11 @@ class MethodFactory:
 
             # Create request context
             context = RequestContext(
-                region=region, path=path, query_params=query_params, access_token=access_token, auth_type=pattern.auth_type
+                region=region,
+                path=path,
+                query_params=query_params,
+                access_token=access_token,
+                auth_type=pattern.auth_type,
             )
 
             # Execute request

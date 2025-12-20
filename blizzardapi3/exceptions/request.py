@@ -1,7 +1,7 @@
 """HTTP request-related exceptions."""
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from .base import BlizzardAPIError
 
@@ -16,9 +16,9 @@ class RequestError(BlizzardAPIError):
         error_details: Additional error details from API
     """
 
-    retry_after: Optional[int] = None
-    error_code: Optional[str] = None
-    error_details: Optional[dict[str, Any]] = None
+    retry_after: int | None = None
+    error_code: str | None = None
+    error_details: dict[str, Any] | None = None
 
     @property
     def is_rate_limited(self) -> bool:

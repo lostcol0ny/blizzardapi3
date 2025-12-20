@@ -1,7 +1,7 @@
 """Base exception for all Blizzard API errors."""
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -16,9 +16,9 @@ class BlizzardAPIError(Exception):
     """
 
     message: str
-    status_code: Optional[int] = None
-    request_url: Optional[str] = None
-    response_data: Optional[dict[str, Any]] = None
+    status_code: int | None = None
+    request_url: str | None = None
+    response_data: dict[str, Any] | None = None
 
     def __str__(self) -> str:
         """Format error message with context."""

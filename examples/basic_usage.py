@@ -15,15 +15,11 @@ def sync_example():
 
     with BlizzardAPI(CLIENT_ID, CLIENT_SECRET) as api:
         # Get an achievement
-        achievement = api.wow.game_data.get_achievement(
-            region=Region.US, locale=Locale.EN_US, achievement_id=6
-        )
+        achievement = api.wow.game_data.get_achievement(region=Region.US, locale=Locale.EN_US, achievement_id=6)
         print(f"Achievement: {achievement.get('name', {}).get('en_US')}")
 
         # Search for decor items
-        decor_results = api.wow.game_data.search_decor(
-            region="us", locale="en_US", name_en_US="Fireplace"
-        )
+        decor_results = api.wow.game_data.search_decor(region="us", locale="en_US", name_en_US="Fireplace")
         print(f"Found {len(decor_results.get('results', []))} decor items")
 
 
@@ -40,10 +36,7 @@ async def async_example():
 
         # Get multiple items concurrently
         tasks = [
-            api.wow.game_data.get_achievement_async(
-                region="us", locale="en_US", achievement_id=i
-            )
-            for i in range(1, 6)
+            api.wow.game_data.get_achievement_async(region="us", locale="en_US", achievement_id=i) for i in range(1, 6)
         ]
         achievements = await asyncio.gather(*tasks, return_exceptions=True)
         print(f"Fetched {len([a for a in achievements if not isinstance(a, Exception)])} achievements concurrently")
@@ -58,9 +51,7 @@ def error_handling_example():
     with BlizzardAPI(CLIENT_ID, CLIENT_SECRET) as api:
         try:
             # Try to get a non-existent achievement
-            api.wow.game_data.get_achievement(
-                region="us", locale="en_US", achievement_id=999999999
-            )
+            api.wow.game_data.get_achievement(region="us", locale="en_US", achievement_id=999999999)
         except NotFoundError as e:
             print(f"Caught NotFoundError: {e}")
         except RateLimitError as e:

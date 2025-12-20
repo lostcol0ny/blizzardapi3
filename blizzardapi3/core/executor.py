@@ -119,7 +119,9 @@ class RequestExecutor:
         # Execute with retry logic
         for attempt in range(self.MAX_RETRIES + 1):
             try:
-                async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with session.get(
+                    url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
 
                     if response.status == 200:
                         return await response.json()

@@ -1,7 +1,6 @@
 """OAuth token management."""
 
 import time
-from typing import Optional
 
 import aiohttp
 import requests
@@ -28,9 +27,9 @@ class TokenManager:
         self.client_id = client_id
         self.client_secret = client_secret
 
-        self._token: Optional[str] = None
-        self._token_type: Optional[str] = None
-        self._expires_at: Optional[float] = None
+        self._token: str | None = None
+        self._token_type: str | None = None
+        self._expires_at: float | None = None
 
     def is_token_valid(self) -> bool:
         """Check if current token is valid.
@@ -140,9 +139,7 @@ class TokenManager:
             ) as response:
 
                 if response.status != 200:
-                    response_data = (
-                        await response.json() if response.content_type == "application/json" else None
-                    )
+                    response_data = await response.json() if response.content_type == "application/json" else None
                     raise TokenError(
                         f"Failed to obtain token: {response.status}",
                         status_code=response.status,

@@ -10,8 +10,10 @@ Prerequisites:
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
-from blizzardapi3 import BlizzardAPI, Region, Locale
+
+from blizzardapi3 import BlizzardAPI, Locale, Region
 
 
 def main():
@@ -37,51 +39,49 @@ def main():
         access_token = f.read().strip()
 
     print("Fetching Account Profile Summary")
-    print("="*70)
+    print("=" * 70)
 
     try:
         with BlizzardAPI(client_id, client_secret) as api:
             # Get account profile with OAuth token
             profile = api.wow.profile.get_account_profile_summary(
-                region=Region.US,
-                locale=Locale.EN_US,
-                access_token=access_token
+                region=Region.US, locale=Locale.EN_US, access_token=access_token
             )
 
             # Display account information
             print(f"\nAccount ID: {profile['id']}")
 
-            if 'wow_accounts' in profile:
+            if "wow_accounts" in profile:
                 print(f"\nWoW Accounts: {len(profile['wow_accounts'])}")
 
-                for i, wow_account in enumerate(profile['wow_accounts'], 1):
+                for i, wow_account in enumerate(profile["wow_accounts"], 1):
                     print(f"\n  Account {i}:")
                     print(f"    ID: {wow_account['id']}")
 
-                    if 'characters' in wow_account:
-                        char_count = len(wow_account['characters'])
+                    if "characters" in wow_account:
+                        char_count = len(wow_account["characters"])
                         print(f"    Characters: {char_count}")
 
                         # Show sample characters
-                        for char in wow_account['characters'][:5]:
-                            realm = char.get('realm', {}).get('name', 'Unknown')
-                            level = char.get('level', '?')
-                            char_class = char.get('playable_class', {}).get('name', 'Unknown')
-                            name = char.get('name', 'Unknown')
+                        for char in wow_account["characters"][:5]:
+                            realm = char.get("realm", {}).get("name", "Unknown")
+                            level = char.get("level", "?")
+                            char_class = char.get("playable_class", {}).get("name", "Unknown")
+                            name = char.get("name", "Unknown")
                             print(f"      - {name} (Level {level} {char_class} on {realm})")
 
                         if char_count > 5:
                             print(f"      ... and {char_count - 5} more")
 
-            if 'collections' in profile:
+            if "collections" in profile:
                 print(f"\nCollections: {profile['collections']['href']}")
 
-            if 'houses' in profile:
-                print(f"Houses data available: Yes")
+            if "houses" in profile:
+                print("Houses data available: Yes")
 
-            print("\n" + "="*70)
+            print("\n" + "=" * 70)
             print("Account Profile retrieved successfully!")
-            print("="*70)
+            print("=" * 70)
 
     except Exception as e:
         print(f"\n[ERROR] {e}")

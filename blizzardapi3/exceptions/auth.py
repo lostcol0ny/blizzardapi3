@@ -1,7 +1,6 @@
 """Authentication-related exceptions."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .base import BlizzardAPIError
 
@@ -22,8 +21,8 @@ class TokenError(AuthenticationError):
         expires_in: Token expiration time in seconds
     """
 
-    token_type: Optional[str] = None
-    expires_in: Optional[int] = None
+    token_type: str | None = None
+    expires_in: int | None = None
 
     def __str__(self) -> str:
         """Format token error message."""
@@ -53,7 +52,7 @@ class TokenExpiredError(AuthenticationError):
         expired_at: Unix timestamp when token expired
     """
 
-    expired_at: Optional[int] = None
+    expired_at: int | None = None
 
     def __str__(self) -> str:
         """Format token expiration error."""

@@ -1,6 +1,5 @@
 """World of Warcraft API facade."""
 
-from typing import Any
 
 from ..core import BaseClient, EndpointRegistry, MethodFactory, RequestExecutor
 

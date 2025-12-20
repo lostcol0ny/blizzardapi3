@@ -5,8 +5,10 @@ search endpoints with filtering and pagination.
 """
 
 import os
+
 from dotenv import load_dotenv
-from blizzardapi3 import BlizzardAPI, Region, Locale
+
+from blizzardapi3 import BlizzardAPI, Locale, Region
 
 
 def main():
@@ -22,61 +24,50 @@ def main():
         return
 
     print("BlizzardAPI v3 - Search Examples")
-    print("="*70)
+    print("=" * 70)
 
     with BlizzardAPI(client_id, client_secret) as api:
         # Example 1: Basic search
         print("\nExample 1: Search for decor items containing 'wall'")
-        print("-"*70)
+        print("-" * 70)
 
-        results = api.wow.game_data.search_decor(
-            region=Region.US,
-            locale=Locale.EN_US,
-            **{"name.en_US": "wall"}
-        )
+        results = api.wow.game_data.search_decor(region=Region.US, locale=Locale.EN_US, **{"name.en_US": "wall"})
 
         print(f"Found {len(results['results'])} items on page {results['page']}")
         print(f"Total pages: {results['pageCount']}\n")
 
-        for i, result in enumerate(results['results'][:5], 1):
-            data = result['data']
+        for i, result in enumerate(results["results"][:5], 1):
+            data = result["data"]
             print(f"{i}. {data['name']['en_US']} (ID: {data['id']})")
 
         # Example 2: Pagination
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Example 2: Paginated search with ordering")
-        print("-"*70)
+        print("-" * 70)
 
-        results = api.wow.game_data.search_decor(
-            region=Region.US,
-            locale=Locale.EN_US,
-            orderby="id",
-            _page=1
-        )
+        results = api.wow.game_data.search_decor(region=Region.US, locale=Locale.EN_US, orderby="id", _page=1)
 
         print(f"Page {results['page']} of {results['pageCount']}")
         print(f"Results per page: {results['pageSize']}")
         print(f"Items on this page: {len(results['results'])}\n")
 
-        for i, result in enumerate(results['results'][:3], 1):
-            data = result['data']
+        for i, result in enumerate(results["results"][:3], 1):
+            data = result["data"]
             print(f"{i}. {data['name']['en_US']} (ID: {data['id']})")
 
         # Example 3: Search multiple resource types
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Example 3: Search for mounts")
-        print("-"*70)
+        print("-" * 70)
 
         mount_results = api.wow.game_data.search_mount(
-            region=Region.US,
-            locale=Locale.EN_US,
-            **{"name.en_US": "dragon"}
+            region=Region.US, locale=Locale.EN_US, **{"name.en_US": "dragon"}
         )
 
         print(f"Found {len(mount_results['results'])} mounts with 'dragon'\n")
 
-        for i, result in enumerate(mount_results['results'][:5], 1):
-            data = result['data']
+        for i, result in enumerate(mount_results["results"][:5], 1):
+            data = result["data"]
             print(f"{i}. {data['name']['en_US']} (ID: {data['id']})")
 
 

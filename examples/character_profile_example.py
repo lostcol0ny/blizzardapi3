@@ -5,8 +5,10 @@ WoW Profile API. No OAuth token required for public character data.
 """
 
 import os
+
 from dotenv import load_dotenv
-from blizzardapi3 import BlizzardAPI, Region, Locale
+
+from blizzardapi3 import BlizzardAPI, Locale, Region
 
 
 def main():
@@ -27,15 +29,12 @@ def main():
     character = "beyloc"
 
     print(f"Fetching character profile: {character.title()}-{realm.title()}")
-    print("="*70)
+    print("=" * 70)
 
     with BlizzardAPI(client_id, client_secret) as api:
         # Get character appearance
         appearance = api.wow.profile.get_character_appearance_summary(
-            region=Region.US,
-            locale=Locale.EN_US,
-            realm_slug=realm,
-            character_name=character
+            region=Region.US, locale=Locale.EN_US, realm_slug=realm, character_name=character
         )
 
         print(f"\nCharacter: {appearance['character']['name']}")
@@ -47,25 +46,22 @@ def main():
         print(f"Faction: {appearance['faction']['name']}")
 
         # Get character equipment
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Equipment")
-        print("="*70)
+        print("=" * 70)
 
         equipment = api.wow.profile.get_character_equipment_summary(
-            region=Region.US,
-            locale=Locale.EN_US,
-            realm_slug=realm,
-            character_name=character
+            region=Region.US, locale=Locale.EN_US, realm_slug=realm, character_name=character
         )
 
-        for item in equipment['equipped_items'][:5]:  # Show first 5 items
-            slot = item['slot']['name']
-            name = item['name']
-            quality = item['quality']['name']
-            level = item.get('level', {}).get('value', 'N/A')
+        for item in equipment["equipped_items"][:5]:  # Show first 5 items
+            slot = item["slot"]["name"]
+            name = item["name"]
+            quality = item["quality"]["name"]
+            level = item.get("level", {}).get("value", "N/A")
             print(f"  {slot}: {name} ({quality}, ilvl {level})")
 
-        if len(equipment['equipped_items']) > 5:
+        if len(equipment["equipped_items"]) > 5:
             print(f"  ... and {len(equipment['equipped_items']) - 5} more items")
 
 

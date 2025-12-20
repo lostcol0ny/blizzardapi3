@@ -1,10 +1,10 @@
 """Endpoint registry for loading YAML configurations."""
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class PatternTemplate(BaseModel):
@@ -45,19 +45,19 @@ class EndpointDefinition(BaseModel):
     """
 
     method_name: str
-    pattern: Optional[str] = None
+    pattern: str | None = None
     resource: str = ""
-    path: Optional[str] = None
-    path_template: Optional[str] = None
-    params: Optional[list[str]] = None
-    param_name: Optional[str] = None
-    namespace_type: Optional[str] = None
-    namespace_variant: Optional[str] = None
+    path: str | None = None
+    path_template: str | None = None
+    params: list[str] | None = None
+    param_name: str | None = None
+    namespace_type: str | None = None
+    namespace_variant: str | None = None
     supports_classic: bool = False
     accepts_kwargs: bool = False
     http_method: str = "GET"
     description: str
-    response_model: Optional[str] = None
+    response_model: str | None = None
 
 
 class EndpointConfig(BaseModel):
@@ -74,7 +74,7 @@ class EndpointConfig(BaseModel):
     version: str
     game: str
     api_type: str
-    pattern_templates: Optional[dict[str, PatternTemplate]] = None
+    pattern_templates: dict[str, PatternTemplate] | None = None
     endpoints: list[EndpointDefinition]
 
 

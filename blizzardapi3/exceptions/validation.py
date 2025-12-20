@@ -1,7 +1,7 @@
 """Parameter validation exceptions."""
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from .base import BlizzardAPIError
 
@@ -15,8 +15,8 @@ class ValidationError(BlizzardAPIError):
         invalid_value: The invalid value that was provided
     """
 
-    field: Optional[str] = None
-    invalid_value: Optional[Any] = None
+    field: str | None = None
+    invalid_value: Any | None = None
 
     def __str__(self) -> str:
         """Format validation error message."""
@@ -39,7 +39,7 @@ class InvalidRegionError(ValidationError):
         valid_regions: List of valid region codes
     """
 
-    valid_regions: Optional[list[str]] = None
+    valid_regions: list[str] | None = None
 
     def __str__(self) -> str:
         """Format invalid region error."""
@@ -57,7 +57,7 @@ class InvalidLocaleError(ValidationError):
         valid_locales: List of valid locale codes
     """
 
-    valid_locales: Optional[list[str]] = None
+    valid_locales: list[str] | None = None
 
     def __str__(self) -> str:
         """Format invalid locale error."""
@@ -75,7 +75,7 @@ class MissingParameterError(ValidationError):
         required_params: List of all required parameters
     """
 
-    required_params: Optional[list[str]] = None
+    required_params: list[str] | None = None
 
     def __str__(self) -> str:
         """Format missing parameter error."""

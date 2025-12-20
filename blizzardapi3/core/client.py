@@ -1,6 +1,5 @@
 """Base API client with session management."""
 
-from typing import Optional
 
 import aiohttp
 import requests
@@ -60,8 +59,8 @@ class BaseClient:
             self.default_locale = locale
 
         # Session management
-        self._sync_session: Optional[requests.Session] = None
-        self._async_session: Optional[aiohttp.ClientSession] = None
+        self._sync_session: requests.Session | None = None
+        self._async_session: aiohttp.ClientSession | None = None
 
         # Token manager (shared between sync and async)
         self.token_manager = TokenManager(client_id, client_secret)
