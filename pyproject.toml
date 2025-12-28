@@ -37,6 +37,9 @@ build-backend = "setuptools.build_meta"
 where = ["."]
 include = ["blizzardapi3*"]
 
+[tool.setuptools.package-data]
+blizzardapi3 = ["config/endpoints/*.yaml"]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2.2,<10.0.0",
@@ -45,9 +48,7 @@ dev = [
     "black>=24.4.2,<26.0.0",
     "ruff>=0.3.0,<1.0.0",
 ]
-examples = [
-    "python-dotenv>=1.0.0,<2.0.0",
-]
+examples = ["python-dotenv>=1.0.0,<2.0.0"]
 
 [tool.black]
 line-length = 120
@@ -55,7 +56,7 @@ target-version = ["py311", "py312", "py313"]
 
 [tool.ruff]
 line-length = 120
-target-version = "3.0.2"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
