@@ -1,6 +1,6 @@
 """Main BlizzardAPI client."""
 
-from .api import WowAPI
+from .api import D3API, SC2API, HearthstoneAPI, WowAPI
 from .core import BaseClient, EndpointRegistry
 from .types import Locale, Region
 
@@ -51,3 +51,6 @@ class BlizzardAPI(BaseClient):
 
         # Initialize game APIs
         self.wow = WowAPI(self, self.registry)
+        self.d3 = D3API(self, self.registry)
+        self.hearthstone = HearthstoneAPI(self, self.registry)
+        self.sc2 = SC2API(self, self.registry)

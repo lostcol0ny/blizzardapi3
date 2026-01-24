@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .context import RequestContext
-from .executor import RequestExecutor
+from .executor import ApiResponse, RequestExecutor
 from .registry import EndpointDefinition, EndpointRegistry, PatternTemplate
 
 
@@ -145,7 +145,7 @@ class MethodFactory:
         build_path = self._build_path
         build_namespace = self._build_namespace
 
-        def method(api_instance, **kwargs: Any) -> dict[str, Any]:
+        def method(api_instance, **kwargs: Any) -> ApiResponse:
             # Validate required params
             for param in params:
                 if param not in kwargs:
@@ -217,7 +217,7 @@ class MethodFactory:
         build_path = self._build_path
         build_namespace = self._build_namespace
 
-        async def method(api_instance, **kwargs: Any) -> dict[str, Any]:
+        async def method(api_instance, **kwargs: Any) -> ApiResponse:
             # Validate required params
             for param in params:
                 if param not in kwargs:

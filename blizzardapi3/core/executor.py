@@ -17,6 +17,40 @@ from .auth import TokenManager
 from .context import RequestContext
 
 
+class ApiResponse(dict):
+    """API response that behaves like a dict but also exposes headers.
+
+    Extends dict so existing code using bracket notation, .get(),
+    len(), and iteration continues to work unchanged.
+
+    Attributes:
+        headers: Response headers as a dict
+        status_code: HTTP status code (always 200 for successful responses)
+    """
+
+    def __init__(self, data: dict[str, Any], headers: dict[str, str], status_code: int = 200):
+        """Initialize API response.
+
+        Args:
+            data: Response JSON data
+            headers: Response headers
+            status_code: HTTP status code
+        """
+        super().__init__(data)
+        self._headers = headers
+        self._status_code = status_code
+
+    @property
+    def headers(self) -> dict[str, str]:
+        """Response headers."""
+        return self._headers
+
+    @property
+    def status_code(self) -> int:
+        """HTTP status code."""
+        return self._status_code
+
+
 class RequestExecutor:
     """Executes HTTP requests to Blizzard API with error handling.
 
@@ -35,7 +69,7 @@ class RequestExecutor:
         """
         self.token_manager = token_manager
 
-    def execute(self, context: RequestContext, session: requests.Session) -> dict[str, Any]:
+    def execute(self, context: RequestContext, session: requests.Session) -> ApiResponse:
         """Execute synchronous API request.
 
         Args:
@@ -43,7 +77,7 @@ class RequestExecutor:
             session: requests Session to use
 
         Returns:
-            API response data as dictionary
+            API response with data and headers
 
         Raises:
             NotFoundError: Resource not found (404)
@@ -70,7 +104,7 @@ class RequestExecutor:
                 response = session.get(url, params=params, headers=headers, timeout=30)
 
                 if response.status_code == 200:
-                    return response.json()
+                    return ApiResponse(response.json(), dict(response.headers), response.status_code)
 
                 # Handle 401 - token might be invalid, retry once
                 if response.status_code == 401 and attempt < self.MAX_RETRIES and not context.access_token:
@@ -87,7 +121,7 @@ class RequestExecutor:
 
         raise RequestError("Max retries exceeded", request_url=url)
 
-    async def execute_async(self, context: RequestContext, session: aiohttp.ClientSession) -> dict[str, Any]:
+    async def execute_async(self, context: RequestContext, session: aiohttp.ClientSession) -> ApiResponse:
         """Execute asynchronous API request.
 
         Args:
@@ -95,7 +129,7 @@ class RequestExecutor:
             session: aiohttp ClientSession to use
 
         Returns:
-            API response data as dictionary
+            API response with data and headers
 
         Raises:
             NotFoundError: Resource not found (404)
@@ -124,7 +158,7 @@ class RequestExecutor:
                 ) as response:
 
                     if response.status == 200:
-                        return await response.json()
+                        return ApiResponse(await response.json(), dict(response.headers), response.status)
 
                     # Handle 401 - token might be invalid, retry once
                     if response.status == 401 and attempt < self.MAX_RETRIES and not context.access_token:

@@ -62,6 +62,7 @@ def test_sync_api_call(mock_get, mock_post, api_client, mock_token_response, moc
     # Mock API response
     mock_get.return_value.status_code = 200
     mock_get.return_value.json.return_value = mock_achievement_response
+    mock_get.return_value.headers = {"Content-Type": "application/json"}
 
     with api_client:
         result = api_client.wow.game_data.get_achievement(region="us", locale="en_US", achievement_id=6)
@@ -87,6 +88,7 @@ async def test_async_api_call(mock_get, mock_post, api_client, mock_token_respon
     mock_get_ctx = MagicMock()
     mock_get_ctx.__aenter__.return_value.status = 200
     mock_get_ctx.__aenter__.return_value.json.return_value = mock_achievement_response
+    mock_get_ctx.__aenter__.return_value.headers = {"Content-Type": "application/json"}
     mock_get.return_value = mock_get_ctx
 
     async with api_client:

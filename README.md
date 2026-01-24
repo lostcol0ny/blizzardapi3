@@ -7,6 +7,7 @@ A modern, config-driven Python wrapper for the Blizzard API with full async supp
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Accessing Response Headers](#accessing-response-headers)
 - [Using Search Endpoints](#using-search-endpoints)
 - [Error Handling](#error-handling)
 - [Comprehensive Examples](#comprehensive-examples)
@@ -22,6 +23,7 @@ A modern, config-driven Python wrapper for the Blizzard API with full async supp
 - 📝 **Config-Driven** - YAML-defined endpoints, easy to extend
 - 🎯 **Better Errors** - Specific exception types with detailed context
 - ⚡ **Efficient** - Single session management, proper resource cleanup
+- 📊 **Response Headers** - Access HTTP headers for caching, rate limits, and metadata
 - 🎮 **Complete Coverage** - Supports WoW, Diablo 3, Hearthstone, and StarCraft 2
 
 ## Installation
@@ -66,6 +68,43 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Accessing Response Headers
+
+All API responses include HTTP headers that provide useful metadata. The response object behaves like a dict for data access while also exposing headers:
+
+```python
+from blizzardapi3 import BlizzardAPI
+
+with BlizzardAPI(client_id, client_secret) as api:
+    result = api.wow.game_data.get_achievement(
+        region="us",
+        locale="en_US",
+        achievement_id=6
+    )
+
+    # Access data (unchanged - full backwards compatibility)
+    print(result["name"])
+    print(result.get("points"))
+
+    # Access response headers
+    print(result.headers.get("Last-Modified"))
+    print(result.headers.get("Cache-Control"))
+    print(result.status_code)
+
+    # List all headers
+    for name, value in result.headers.items():
+        print(f"{name}: {value}")
+```
+
+### Useful Headers
+
+| Header | Description |
+|--------|-------------|
+| `Last-Modified` | When the data was last updated by Blizzard |
+| `Cache-Control` | Caching policy (e.g., `max-age=86400` = 24 hours) |
+| `Battlenet-Namespace` | The namespace/version of the data |
+| `blizzard-token-expires` | When the OAuth token expires |
 
 ## Using Search Endpoints
 
@@ -330,16 +369,108 @@ with BlizzardAPI(client_id, client_secret) as api:
         print(f"{char['name']} - Level {char['level']} {char.get('playable_class', {}).get('name', 'Unknown')}")
 ```
 
+### Diablo 3 Examples
+
+```python
+from blizzardapi3 import BlizzardAPI, Region, Locale
+
+with BlizzardAPI(client_id, client_secret) as api:
+    # Get D3 season index
+    seasons = api.d3.game_data.get_season_index(
+        region=Region.US,
+        locale=Locale.EN_US
+    )
+    print(f"Current season: {seasons['current_season']}")
+
+    # Get a player's career profile
+    profile = api.d3.community.get_career(
+        region=Region.US,
+        locale=Locale.EN_US,
+        battle_tag="BattleTag-1234"
+    )
+    print(f"Paragon level: {profile['paragonLevel']}")
+
+    # Get item type index
+    item_types = api.d3.game_data.get_item_type_index(
+        region=Region.US,
+        locale=Locale.EN_US
+    )
+```
+
+### Hearthstone Examples
+
+```python
+from blizzardapi3 import BlizzardAPI, Region, Locale
+
+with BlizzardAPI(client_id, client_secret) as api:
+    # Search for cards
+    cards = api.hearthstone.game_data.search_cards(
+        region=Region.US,
+        locale=Locale.EN_US,
+        **{"class": "mage", "manaCost": 3}
+    )
+    for card in cards['cards'][:5]:
+        print(f"{card['name']} - {card['manaCost']} mana")
+
+    # Get card backs
+    card_backs = api.hearthstone.game_data.search_card_backs(
+        region=Region.US,
+        locale=Locale.EN_US
+    )
+
+    # Get metadata
+    metadata = api.hearthstone.game_data.get_metadata(
+        region=Region.US,
+        locale=Locale.EN_US
+    )
+```
+
+### StarCraft 2 Examples
+
+```python
+from blizzardapi3 import BlizzardAPI, Region, Locale
+
+with BlizzardAPI(client_id, client_secret) as api:
+    # Get league data
+    league = api.sc2.game_data.get_league_data(
+        region=Region.US,
+        locale=Locale.EN_US,
+        season_id=44,
+        queue_id=201,
+        team_type="0",
+        league_id=6
+    )
+
+    # Get static profile data
+    static = api.sc2.community.get_static_profile(
+        region=Region.US,
+        locale=Locale.EN_US,
+        region_id=1
+    )
+
+    # Get grandmaster leaderboard
+    gm_ladder = api.sc2.community.get_grandmaster_leaderboard(
+        region=Region.US,
+        locale=Locale.EN_US,
+        region_id=1
+    )
+```
+
 ## Supported Games
 
-- **World of Warcraft** - Game Data & Profile APIs (208 endpoints)
+- **World of Warcraft** - Game Data & Profile APIs (~290 endpoints)
   - Game Data: Achievements, Items, Mounts, Pets, Auctions, Housing/Decor, and more
   - Profile: Characters, Guilds, Mythic+, PvP, Collections, Equipment
-- **Diablo 3** - Community & Game Data APIs (24 endpoints)
-- **Hearthstone** - Game Data API (8 endpoints)
-- **StarCraft 2** - Community & Game Data APIs (11 endpoints)
+- **Diablo 3** - Community & Game Data APIs (39 endpoints)
+  - Game Data: Items, item types, seasons, eras
+  - Community: Career profiles, heroes, items, followers
+- **Hearthstone** - Game Data API (12 endpoints)
+  - Cards, card backs, decks, metadata search
+- **StarCraft 2** - Community & Game Data APIs (22 endpoints)
+  - Game Data: League data
+  - Community: Profiles, ladders, grandmaster leaderboards
 
-**Total: 242 endpoints**
+**Total: 363 endpoints** (726 methods including async variants)
 
 ## Documentation
 
@@ -371,7 +502,20 @@ pytest
 # Format code
 black .
 ruff check .
+
+# Regenerate stub files for IDE autocomplete (after modifying YAML configs)
+python scripts/generate_stubs.py
 ```
+
+### IDE Autocomplete
+
+BlizzardAPI uses `.pyi` stub files to provide full IDE autocomplete for all dynamically generated API methods. If you modify the YAML endpoint configurations, run the stub generator to update the type hints:
+
+```bash
+python scripts/generate_stubs.py
+```
+
+This generates stub files in `blizzardapi3/api/` for each game API.
 
 ## Architecture
 
