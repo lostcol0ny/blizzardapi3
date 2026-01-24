@@ -3256,7 +3256,6 @@ class WowGameDataAPI:
         """Get the WoW token index."""
         ...
 
-
 class WowProfileAPI:
     """Auto-generated stub for IDE autocomplete."""
 
@@ -4235,8 +4234,6 @@ class WowProfileAPI:
     ) -> ApiResponse:
         """Get guild roster."""
         ...
-
-
 
 class WowAPI:
     """World of Warcraft API facade."""

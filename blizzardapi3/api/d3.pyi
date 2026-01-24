@@ -126,7 +126,6 @@ class D3GameDataAPI:
         """Get an artisan by slug."""
         ...
 
-
 class D3CommunityAPI:
     """Auto-generated stub for IDE autocomplete."""
 
@@ -535,8 +534,6 @@ class D3CommunityAPI:
     ) -> ApiResponse:
         """Get an era leaderboard."""
         ...
-
-
 
 class D3API:
     """Diablo 3 API facade."""

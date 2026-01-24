@@ -164,8 +164,6 @@ class HSGameDataAPI:
         """Get Hearthstone metadata by type (sets, setGroups, types, rarities, classes, etc.)."""
         ...
 
-
-
 class HearthstoneAPI:
     """Hearthstone API facade."""
 

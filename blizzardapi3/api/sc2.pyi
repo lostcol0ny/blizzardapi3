@@ -32,7 +32,6 @@ class SC2GameDataAPI:
         """Get league data for a specific season, queue, team type, and league."""
         ...
 
-
 class SC2CommunityAPI:
     """Auto-generated stub for IDE autocomplete."""
 
@@ -347,8 +346,6 @@ class SC2CommunityAPI:
     ) -> ApiResponse:
         """Get legacy rewards data."""
         ...
-
-
 
 class SC2API:
     """StarCraft 2 API facade."""

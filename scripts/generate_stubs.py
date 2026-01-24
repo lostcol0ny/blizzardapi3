@@ -118,26 +118,36 @@ def generate_api_class_stub(
         params, accepts_kwargs = get_endpoint_params(endpoint, patterns)
 
         # Generate sync method
-        methods.append(generate_method_stub(
-            method_name, params, description,
-            is_async=False, accepts_kwargs=accepts_kwargs,
-            include_is_classic=include_is_classic
-        ))
+        methods.append(
+            generate_method_stub(
+                method_name,
+                params,
+                description,
+                is_async=False,
+                accepts_kwargs=accepts_kwargs,
+                include_is_classic=include_is_classic,
+            )
+        )
 
         # Generate async method
-        methods.append(generate_method_stub(
-            method_name, params, description,
-            is_async=True, accepts_kwargs=accepts_kwargs,
-            include_is_classic=include_is_classic
-        ))
+        methods.append(
+            generate_method_stub(
+                method_name,
+                params,
+                description,
+                is_async=True,
+                accepts_kwargs=accepts_kwargs,
+                include_is_classic=include_is_classic,
+            )
+        )
 
     methods_str = "\n".join(methods)
 
+    # Note: No trailing newline - let the joiner handle spacing
     return f'''class {class_name}:
     """Auto-generated stub for IDE autocomplete."""
 
-{methods_str}
-'''
+{methods_str}'''
 
 
 def generate_stubs_for_config(config_path: Path, include_is_classic: bool = True) -> tuple[str, list[dict], dict]:
@@ -172,7 +182,7 @@ def generate_stub_header(docstring: str, needs_any: bool = False) -> str:
         lines.append("")
     lines.append("from ..core.executor import ApiResponse")
     lines.append("from ..types import Locale, Region")
-    lines.append("")
+    lines.append("")  # One blank line before first class
     return "\n".join(lines)
 
 
@@ -212,13 +222,14 @@ def generate_wow_stubs(config_dir: Path) -> str:
         stubs.append(generate_api_class_stub("WowProfileAPI", endpoints, patterns, include_is_classic=True))
 
     # Add WowAPI class
-    stubs.append('''
-class WowAPI:
+    stubs.append(
+        '''class WowAPI:
     """World of Warcraft API facade."""
 
     game_data: WowGameDataAPI
     profile: WowProfileAPI
-''')
+'''
+    )
 
     return "\n".join(stubs)
 
@@ -259,13 +270,14 @@ def generate_d3_stubs(config_dir: Path) -> str:
         stubs.append(generate_api_class_stub("D3CommunityAPI", endpoints, patterns, include_is_classic=False))
 
     # Add D3API class
-    stubs.append('''
-class D3API:
+    stubs.append(
+        '''class D3API:
     """Diablo 3 API facade."""
 
     game_data: D3GameDataAPI
     community: D3CommunityAPI
-''')
+'''
+    )
 
     return "\n".join(stubs)
 
@@ -285,9 +297,9 @@ def generate_hs_stubs(config_dir: Path) -> str:
             needs_any = True
 
     # Header
-    stubs.append(generate_stub_header(
-        "Type stubs for Hearthstone API - auto-generated for IDE autocomplete.", needs_any
-    ))
+    stubs.append(
+        generate_stub_header("Type stubs for Hearthstone API - auto-generated for IDE autocomplete.", needs_any)
+    )
 
     # Load HS Game Data config
     game_data_path = config_dir / "hs_game_data.yaml"
@@ -298,12 +310,13 @@ def generate_hs_stubs(config_dir: Path) -> str:
         stubs.append(generate_api_class_stub("HSGameDataAPI", endpoints, patterns, include_is_classic=False))
 
     # Add HearthstoneAPI class
-    stubs.append('''
-class HearthstoneAPI:
+    stubs.append(
+        '''class HearthstoneAPI:
     """Hearthstone API facade."""
 
     game_data: HSGameDataAPI
-''')
+'''
+    )
 
     return "\n".join(stubs)
 
@@ -325,9 +338,9 @@ def generate_sc2_stubs(config_dir: Path) -> str:
                 break
 
     # Header
-    stubs.append(generate_stub_header(
-        "Type stubs for StarCraft 2 API - auto-generated for IDE autocomplete.", needs_any
-    ))
+    stubs.append(
+        generate_stub_header("Type stubs for StarCraft 2 API - auto-generated for IDE autocomplete.", needs_any)
+    )
 
     # Load SC2 Game Data config
     game_data_path = config_dir / "sc2_game_data.yaml"
@@ -346,13 +359,14 @@ def generate_sc2_stubs(config_dir: Path) -> str:
         stubs.append(generate_api_class_stub("SC2CommunityAPI", endpoints, patterns, include_is_classic=False))
 
     # Add SC2API class
-    stubs.append('''
-class SC2API:
+    stubs.append(
+        '''class SC2API:
     """StarCraft 2 API facade."""
 
     game_data: SC2GameDataAPI
     community: SC2CommunityAPI
-''')
+'''
+    )
 
     return "\n".join(stubs)
 
@@ -382,13 +396,10 @@ class BlizzardAPI:
         region: Region | str = ...,
         locale: Locale | str | None = ...,
     ) -> None: ...
-
     def close(self) -> None: ...
     async def aclose(self) -> None: ...
-
     def __enter__(self) -> BlizzardAPI: ...
     def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: object) -> None: ...
-
     async def __aenter__(self) -> BlizzardAPI: ...
     async def __aexit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: object) -> None: ...
 '''
