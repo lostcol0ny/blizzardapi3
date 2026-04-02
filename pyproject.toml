@@ -1,6 +1,6 @@
 [project]
 name = "blizzardapi3"
-version = "3.0.4"
+version = "3.0.5"
 description = "A modern, config-driven Python wrapper for the Blizzard API with async support"
 authors = [{ name = "lostcol0ny", email = "c098os0k@4wrd.cc" }]
 license = "MIT"
