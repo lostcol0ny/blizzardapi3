@@ -1,9 +1,9 @@
 """Common types and enums for Blizzard API."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Region(str, Enum):
+class Region(StrEnum):
     """Blizzard API regions."""
 
     US = "us"
@@ -13,7 +13,7 @@ class Region(str, Enum):
     CN = "cn"
 
 
-class Locale(str, Enum):
+class Locale(StrEnum):
     """Blizzard API locales."""
 
     # English
