@@ -3329,6 +3329,28 @@ class WowProfileAPI:
         """Get account collections index (requires OAuth token)."""
         ...
 
+    def get_account_decor_collection_summary(
+        self,
+        *,
+        region: str | Region,
+        locale: str | Locale,
+        access_token: str | None = None,
+        is_classic: bool = False,
+    ) -> ApiResponse:
+        """Get account decor collection (requires OAuth token)."""
+        ...
+
+    async def get_account_decor_collection_summary_async(
+        self,
+        *,
+        region: str | Region,
+        locale: str | Locale,
+        access_token: str | None = None,
+        is_classic: bool = False,
+    ) -> ApiResponse:
+        """Get account decor collection (requires OAuth token)."""
+        ...
+
     def get_account_mounts_collection_summary(
         self,
         *,

@@ -62,6 +62,13 @@ endpoints:
     description: "Get account collections index (requires OAuth token)"
     response_model: "AccountCollectionsIndex"
 
+  - method_name: "get_account_decor_collection_summary"
+    path_template: "/profile/user/wow/collections/decor"
+    params: ["region", "locale", "access_token"]
+    namespace_type: "profile"
+    description: "Get account decor collection (requires OAuth token)"
+    response_model: "AccountDecorCollection"
+
   - method_name: "get_account_mounts_collection_summary"
     path_template: "/profile/user/wow/collections/mounts"
     params: ["region", "locale", "access_token"]
