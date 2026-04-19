@@ -1,8 +1,8 @@
-# Runs tests + lint on every push, then hands off to release-it.
-# release-it bumps the version, tags, pushes, builds the sdist/wheel,
-# uploads to PyPI, and cuts a GitHub release — all as one atomic step
-# so the git tag, the GitHub release, and the PyPI artifact are always
-# the same version.
+# Runs tests + lint on every push. On main, release-it bumps the version
+# and commits/tags locally; the workflow then builds, pushes, uploads to
+# PyPI, and cuts the GitHub release as separate, retryable steps. This
+# keeps the fragile GitHub API call last, so a failure there can't leave
+# PyPI out of sync with the git tag.
 
 name: Python package
 
@@ -94,11 +94,30 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Run release-it (bump, build, publish to PyPI, tag, release)
+      - name: Run release-it (bump + local commit/tag only)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: npx release-it --ci
+
+      - name: Build distribution
         run: |
-          echo "pyproject version before: $(grep '^version = ' pyproject.toml | head -n1 | cut -d'\"' -f2)"
-          echo "package.json version before: $(node -p "require('./package.json').version")"
-          npx release-it --ci
+          rm -rf dist
+          python -m build
+
+      - name: Push commit and tag
+        run: git push --follow-tags origin HEAD:main
+
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/* --skip-existing
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          gh release create "v$VERSION" \
+            --title "Release v$VERSION" \
+            --generate-notes
