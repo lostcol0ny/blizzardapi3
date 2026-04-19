@@ -1,15 +1,12 @@
 [project]
 name = "blizzardapi3"
-version = "3.0.5"
-description = "A modern, config-driven Python wrapper for the Blizzard API with async support"
+version = "4.0.0"
+description = "A modern Python wrapper for the Blizzard API with sync and async support"
 authors = [{ name = "lostcol0ny", email = "c098os0k@4wrd.cc" }]
 license = "MIT"
 readme = "README.md"
 dependencies = [
-    "requests>=2.32.3,<3.0.0",
-    "aiohttp>=3.12.12,<4.0.0",
-    "pydantic>=2.11.6,<3.0.0",
-    "pyyaml>=6.0,<7.0.0",
+    "httpx>=0.27.0,<1.0.0",
 ]
 requires-python = ">=3.11"
 classifiers = [
@@ -36,9 +33,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["blizzardapi3*"]
-
-[tool.setuptools.package-data]
-blizzardapi3 = ["config/endpoints/*.yaml"]
 
 [project.optional-dependencies]
 dev = [
