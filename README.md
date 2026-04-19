@@ -32,6 +32,12 @@ A modern, config-driven Python wrapper for the Blizzard API with full async supp
 pip install blizzardapi3
 ```
 
+> **Version stability:** BlizzardAPI v3 is under active development and is not yet considered stable. Breaking changes may land between minor versions as internal patterns are refined. For production use, pin to an exact version and review the [release notes](https://github.com/lostcol0ny/blizzardapi3/releases) before upgrading:
+>
+> ```bash
+> pip install blizzardapi3==3.0.5
+> ```
+
 ## Quick Start
 
 ### Synchronous Usage
