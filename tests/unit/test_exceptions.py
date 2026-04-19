@@ -1,11 +1,8 @@
 """Tests for exception hierarchy."""
 
-import pytest
-
 from blizzardapi3.exceptions import (
     BadRequestError,
     BlizzardAPIError,
-    ForbiddenError,
     InvalidLocaleError,
     InvalidRegionError,
     MissingParameterError,

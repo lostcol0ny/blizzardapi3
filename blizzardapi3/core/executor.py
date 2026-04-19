@@ -129,10 +129,6 @@ def _decode(response: httpx.Response, url: str) -> ApiResponse:
                 response_data=body,
             )
         case _ if 500 <= status < 600:
-            raise ServerError(
-                f"Server error: {status}", status_code=status, request_url=url, response_data=body
-            )
+            raise ServerError(f"Server error: {status}", status_code=status, request_url=url, response_data=body)
         case _:
-            raise RequestError(
-                f"Request failed: {status}", status_code=status, request_url=url, response_data=body
-            )
+            raise RequestError(f"Request failed: {status}", status_code=status, request_url=url, response_data=body)

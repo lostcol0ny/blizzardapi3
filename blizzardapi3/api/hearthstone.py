@@ -26,25 +26,17 @@ class HearthstoneAPI:
     # Shared helpers — no namespace, just locale
     # ------------------------------------------------------------------
 
-    def _get(
-        self, region: Region | str, locale: Locale | str, path: str, **extra: Any
-    ) -> ApiResponse:
+    def _get(self, region: Region | str, locale: Locale | str, path: str, **extra: Any) -> ApiResponse:
         r = region.value if isinstance(region, Region) else region
-        l = locale.value if isinstance(locale, Locale) else locale
-        params: dict[str, Any] = {"locale": l, **extra}
-        return self._executor.execute(
-            region=r, path=path, params=params, client=self._client.sync_client
-        )
+        loc = locale.value if isinstance(locale, Locale) else locale
+        params: dict[str, Any] = {"locale": loc, **extra}
+        return self._executor.execute(region=r, path=path, params=params, client=self._client.sync_client)
 
-    async def _get_async(
-        self, region: Region | str, locale: Locale | str, path: str, **extra: Any
-    ) -> ApiResponse:
+    async def _get_async(self, region: Region | str, locale: Locale | str, path: str, **extra: Any) -> ApiResponse:
         r = region.value if isinstance(region, Region) else region
-        l = locale.value if isinstance(locale, Locale) else locale
-        params: dict[str, Any] = {"locale": l, **extra}
-        return await self._executor.execute_async(
-            region=r, path=path, params=params, client=self._client.async_client
-        )
+        loc = locale.value if isinstance(locale, Locale) else locale
+        params: dict[str, Any] = {"locale": loc, **extra}
+        return await self._executor.execute_async(region=r, path=path, params=params, client=self._client.async_client)
 
     # ------------------------------------------------------------------
     # Cards
@@ -74,9 +66,7 @@ class HearthstoneAPI:
         **filters: Any,
     ) -> ApiResponse:
         """Async variant of :py:meth:`search_cards`."""
-        return await self._get_async(
-            region, locale, "/hearthstone/cards", **filters
-        )
+        return await self._get_async(region, locale, "/hearthstone/cards", **filters)
 
     def get_card(
         self,
@@ -87,9 +77,7 @@ class HearthstoneAPI:
         **filters: Any,
     ) -> ApiResponse:
         """Get a Hearthstone card by ID or slug."""
-        return self._get(
-            region, locale, f"/hearthstone/cards/{id_or_slug}", **filters
-        )
+        return self._get(region, locale, f"/hearthstone/cards/{id_or_slug}", **filters)
 
     async def get_card_async(
         self,
@@ -100,9 +88,7 @@ class HearthstoneAPI:
         **filters: Any,
     ) -> ApiResponse:
         """Get a Hearthstone card by ID or slug."""
-        return await self._get_async(
-            region, locale, f"/hearthstone/cards/{id_or_slug}", **filters
-        )
+        return await self._get_async(region, locale, f"/hearthstone/cards/{id_or_slug}", **filters)
 
     # ------------------------------------------------------------------
     # Card backs
@@ -128,9 +114,7 @@ class HearthstoneAPI:
         **filters: Any,
     ) -> ApiResponse:
         """Async variant of :py:meth:`search_card_backs`."""
-        return await self._get_async(
-            region, locale, "/hearthstone/cardbacks", **filters
-        )
+        return await self._get_async(region, locale, "/hearthstone/cardbacks", **filters)
 
     def get_card_back(
         self,
@@ -150,9 +134,7 @@ class HearthstoneAPI:
         id_or_slug: str | int,
     ) -> ApiResponse:
         """Get a Hearthstone card back by ID or slug."""
-        return await self._get_async(
-            region, locale, f"/hearthstone/cardbacks/{id_or_slug}"
-        )
+        return await self._get_async(region, locale, f"/hearthstone/cardbacks/{id_or_slug}")
 
     # ------------------------------------------------------------------
     # Decks
@@ -176,9 +158,7 @@ class HearthstoneAPI:
         deck_code: str,
     ) -> ApiResponse:
         """Get a Hearthstone deck by full deck code (path form)."""
-        return await self._get_async(
-            region, locale, f"/hearthstone/deck/{deck_code}"
-        )
+        return await self._get_async(region, locale, f"/hearthstone/deck/{deck_code}")
 
     def get_deck_by_code(
         self,
@@ -202,23 +182,17 @@ class HearthstoneAPI:
         code: str,
     ) -> ApiResponse:
         """Get a Hearthstone deck via the ``?code=`` query form."""
-        return await self._get_async(
-            region, locale, "/hearthstone/deck", code=code
-        )
+        return await self._get_async(region, locale, "/hearthstone/deck", code=code)
 
     # ------------------------------------------------------------------
     # Metadata
     # ------------------------------------------------------------------
 
-    def get_metadata(
-        self, *, region: Region | str, locale: Locale | str
-    ) -> ApiResponse:
+    def get_metadata(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get Hearthstone metadata (all types)."""
         return self._get(region, locale, "/hearthstone/metadata")
 
-    async def get_metadata_async(
-        self, *, region: Region | str, locale: Locale | str
-    ) -> ApiResponse:
+    async def get_metadata_async(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get Hearthstone metadata (all types)."""
         return await self._get_async(region, locale, "/hearthstone/metadata")
 
@@ -231,9 +205,7 @@ class HearthstoneAPI:
     ) -> ApiResponse:
         """Get Hearthstone metadata by type (``sets``, ``setGroups``,
         ``types``, ``rarities``, ``classes``, etc.)."""
-        return self._get(
-            region, locale, f"/hearthstone/metadata/{metadata_type}"
-        )
+        return self._get(region, locale, f"/hearthstone/metadata/{metadata_type}")
 
     async def get_metadata_type_async(
         self,
@@ -243,6 +215,4 @@ class HearthstoneAPI:
         metadata_type: str,
     ) -> ApiResponse:
         """Get Hearthstone metadata by type."""
-        return await self._get_async(
-            region, locale, f"/hearthstone/metadata/{metadata_type}"
-        )
+        return await self._get_async(region, locale, f"/hearthstone/metadata/{metadata_type}")

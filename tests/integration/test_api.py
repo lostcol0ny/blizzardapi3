@@ -8,14 +8,13 @@ HTTP is made — ``httpx.MockTransport`` intercepts every request.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import httpx
 import pytest
 
 from blizzardapi3 import ApiResponse, BlizzardAPI, ClassicTrack, Locale, Region
-
 
 # ---------------------------------------------------------------------------
 # Transport helper
@@ -129,9 +128,7 @@ def test_search_method_forwards_kwargs_as_query_params(api_client, mock_search_r
     _install_mock_transport(api_client, handler=handler)
 
     with api_client:
-        result = api_client.wow.game_data.search_decor(
-            region="us", locale="en_US", orderby="id", _page=1
-        )
+        result = api_client.wow.game_data.search_decor(region="us", locale="en_US", orderby="id", _page=1)
 
     assert "results" in result
     assert result["page"] == 1
@@ -150,9 +147,7 @@ async def test_async_retail_call(api_client, mock_achievement_response):
     _install_mock_transport(api_client, handler=handler)
 
     async with api_client:
-        result = await api_client.wow.game_data.get_achievement_async(
-            region="us", locale="en_US", achievement_id=6
-        )
+        result = await api_client.wow.game_data.get_achievement_async(region="us", locale="en_US", achievement_id=6)
 
     assert result["id"] == 6
 
@@ -247,7 +242,5 @@ def test_hearthstone_search_forwards_filter_kwargs(api_client):
 
     with api_client:
         # ``class`` is a keyword, so pass via ``**``
-        result = api_client.hearthstone.search_cards(
-            region="us", locale="en_US", **{"class": "mage", "manaCost": 7}
-        )
+        result = api_client.hearthstone.search_cards(region="us", locale="en_US", **{"class": "mage", "manaCost": 7})
     assert "cards" in result

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import httpx
 import pytest
 
@@ -17,7 +15,6 @@ from blizzardapi3.exceptions import (
     RequestError,
     ServerError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

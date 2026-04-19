@@ -44,9 +44,7 @@ class WowProfile:
         r, params = _normalize(region, locale, namespace_type="profile", extra=extra)
         if access_token is not None:
             params["access_token"] = access_token
-        return self._executor.execute(
-            region=r, path=path, params=params, client=self._client.sync_client
-        )
+        return self._executor.execute(region=r, path=path, params=params, client=self._client.sync_client)
 
     async def _profile_get_async(
         self,
@@ -60,9 +58,7 @@ class WowProfile:
         r, params = _normalize(region, locale, namespace_type="profile", extra=extra)
         if access_token is not None:
             params["access_token"] = access_token
-        return await self._executor.execute_async(
-            region=r, path=path, params=params, client=self._client.async_client
-        )
+        return await self._executor.execute_async(region=r, path=path, params=params, client=self._client.async_client)
 
     # ------------------------------------------------------------------
     # Account Profile (requires user access_token)
@@ -78,9 +74,7 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's WoW profile summary."""
-        return await self._profile_get_async(
-            region, locale, "/profile/user/wow", access_token=access_token
-        )
+        return await self._profile_get_async(region, locale, "/profile/user/wow", access_token=access_token)
 
     def get_protected_character_profile_summary(
         self,
@@ -120,25 +114,19 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's collections index."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections", access_token=access_token)
 
     async def get_account_collections_index_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's collections index."""
-        return await self._profile_get_async(
-            region, locale, "/profile/user/wow/collections", access_token=access_token
-        )
+        return await self._profile_get_async(region, locale, "/profile/user/wow/collections", access_token=access_token)
 
     def get_account_decor_collection_summary(
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's decor collection."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections/decor", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections/decor", access_token=access_token)
 
     async def get_account_decor_collection_summary_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
@@ -152,9 +140,7 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's mounts collection."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections/mounts", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections/mounts", access_token=access_token)
 
     async def get_account_mounts_collection_summary_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
@@ -168,9 +154,7 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's battle pets collection."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections/pets", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections/pets", access_token=access_token)
 
     async def get_account_pets_collection_summary_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
@@ -184,9 +168,7 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's heirlooms collection."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections/heirlooms", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections/heirlooms", access_token=access_token)
 
     async def get_account_heirlooms_collection_summary_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
@@ -200,9 +182,7 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's toys collection."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections/toys", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections/toys", access_token=access_token)
 
     async def get_account_toys_collection_summary_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
@@ -216,9 +196,7 @@ class WowProfile:
         self, *, region: Region | str, locale: Locale | str, access_token: str
     ) -> ApiResponse:
         """Get the authenticated account's transmog collection."""
-        return self._profile_get(
-            region, locale, "/profile/user/wow/collections/transmogs", access_token=access_token
-        )
+        return self._profile_get(region, locale, "/profile/user/wow/collections/transmogs", access_token=access_token)
 
     async def get_account_transmog_collection_summary_async(
         self, *, region: Region | str, locale: Locale | str, access_token: str
@@ -338,8 +316,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/achievements/statistics",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/achievements/statistics",
         )
 
     async def get_character_achievement_statistics_async(
@@ -354,8 +331,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/achievements/statistics",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/achievements/statistics",
         )
 
     # ------------------------------------------------------------------
@@ -438,8 +414,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/decor",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/decor",
         )
 
     async def get_character_decor_collection_async(
@@ -454,8 +429,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/decor",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/decor",
         )
 
     def get_character_mounts_collection_summary(
@@ -470,8 +444,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/mounts",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/mounts",
         )
 
     async def get_character_mounts_collection_summary_async(
@@ -486,8 +459,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/mounts",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/mounts",
         )
 
     def get_character_pets_collection_summary(
@@ -502,8 +474,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/pets",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/pets",
         )
 
     async def get_character_pets_collection_summary_async(
@@ -518,8 +489,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/pets",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/pets",
         )
 
     def get_character_heirlooms_collection_summary(
@@ -534,8 +504,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/heirlooms",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/heirlooms",
         )
 
     async def get_character_heirlooms_collection_summary_async(
@@ -550,8 +519,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/heirlooms",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/heirlooms",
         )
 
     def get_character_toys_collection_summary(
@@ -566,8 +534,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/toys",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/toys",
         )
 
     async def get_character_toys_collection_summary_async(
@@ -582,8 +549,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/toys",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/toys",
         )
 
     def get_character_transmog_collection_summary(
@@ -598,8 +564,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/transmogs",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/transmogs",
         )
 
     async def get_character_transmog_collection_summary_async(
@@ -614,8 +579,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/collections/transmogs",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/collections/transmogs",
         )
 
     # ------------------------------------------------------------------
@@ -664,8 +628,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/encounters/dungeons",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/encounters/dungeons",
         )
 
     async def get_character_dungeons_async(
@@ -680,8 +643,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/encounters/dungeons",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/encounters/dungeons",
         )
 
     def get_character_raids(
@@ -696,8 +658,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/encounters/raids",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/encounters/raids",
         )
 
     async def get_character_raids_async(
@@ -712,8 +673,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/encounters/raids",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/encounters/raids",
         )
 
     # ------------------------------------------------------------------
@@ -792,8 +752,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/character-media",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/character-media",
         )
 
     async def get_character_media_summary_async(
@@ -808,8 +767,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/character-media",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/character-media",
         )
 
     # ------------------------------------------------------------------
@@ -828,8 +786,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/mythic-keystone-profile",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/mythic-keystone-profile",
         )
 
     async def get_character_mythic_keystone_profile_index_async(
@@ -844,8 +801,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/mythic-keystone-profile",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/mythic-keystone-profile",
         )
 
     def get_character_mythic_keystone_season_details(
@@ -930,8 +886,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            f"/pvp-bracket/{pvp_bracket}",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" f"/pvp-bracket/{pvp_bracket}",
         )
 
     async def get_character_pvp_bracket_statistics_async(
@@ -947,8 +902,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            f"/pvp-bracket/{pvp_bracket}",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" f"/pvp-bracket/{pvp_bracket}",
         )
 
     def get_character_pvp_summary(
@@ -1023,8 +977,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/quests/completed",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/quests/completed",
         )
 
     async def get_character_completed_quests_async(
@@ -1039,8 +992,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/quests/completed",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/quests/completed",
         )
 
     def get_character_reputations_summary(
@@ -1115,8 +1067,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/specializations",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/specializations",
         )
 
     async def get_character_specializations_summary_async(
@@ -1131,8 +1082,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            "/specializations",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" "/specializations",
         )
 
     def get_character_statistics_summary(
@@ -1212,8 +1162,7 @@ class WowProfile:
         return self._profile_get(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            f"/house/house-{house_number}",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" f"/house/house-{house_number}",
         )
 
     async def get_character_house_async(
@@ -1229,8 +1178,7 @@ class WowProfile:
         return await self._profile_get_async(
             region,
             locale,
-            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}"
-            f"/house/house-{house_number}",
+            f"/profile/wow/character/{realm_slug.lower()}/{character_name.lower()}" f"/house/house-{house_number}",
         )
 
     # ------------------------------------------------------------------
@@ -1246,9 +1194,7 @@ class WowProfile:
         name_slug: str,
     ) -> ApiResponse:
         """Get a guild by realm and name slugs."""
-        return self._profile_get(
-            region, locale, f"/data/wow/guild/{realm_slug.lower()}/{name_slug.lower()}"
-        )
+        return self._profile_get(region, locale, f"/data/wow/guild/{realm_slug.lower()}/{name_slug.lower()}")
 
     async def get_guild_async(
         self,
@@ -1367,5 +1313,5 @@ def _normalize(
     extra: dict[str, Any],
 ) -> tuple[str, dict[str, Any]]:
     r = region.value if isinstance(region, Region) else region
-    l = locale.value if isinstance(locale, Locale) else locale
-    return r, {"namespace": f"{namespace_type}-{r}", "locale": l, **extra}
+    loc = locale.value if isinstance(locale, Locale) else locale
+    return r, {"namespace": f"{namespace_type}-{r}", "locale": loc, **extra}

@@ -26,33 +26,23 @@ class SC2API:
     # Shared helpers — no namespace, just locale
     # ------------------------------------------------------------------
 
-    def _get(
-        self, region: Region | str, locale: Locale | str, path: str, **extra: Any
-    ) -> ApiResponse:
+    def _get(self, region: Region | str, locale: Locale | str, path: str, **extra: Any) -> ApiResponse:
         r = region.value if isinstance(region, Region) else region
-        l = locale.value if isinstance(locale, Locale) else locale
-        params: dict[str, Any] = {"locale": l, **extra}
-        return self._executor.execute(
-            region=r, path=path, params=params, client=self._client.sync_client
-        )
+        loc = locale.value if isinstance(locale, Locale) else locale
+        params: dict[str, Any] = {"locale": loc, **extra}
+        return self._executor.execute(region=r, path=path, params=params, client=self._client.sync_client)
 
-    async def _get_async(
-        self, region: Region | str, locale: Locale | str, path: str, **extra: Any
-    ) -> ApiResponse:
+    async def _get_async(self, region: Region | str, locale: Locale | str, path: str, **extra: Any) -> ApiResponse:
         r = region.value if isinstance(region, Region) else region
-        l = locale.value if isinstance(locale, Locale) else locale
-        params: dict[str, Any] = {"locale": l, **extra}
-        return await self._executor.execute_async(
-            region=r, path=path, params=params, client=self._client.async_client
-        )
+        loc = locale.value if isinstance(locale, Locale) else locale
+        params: dict[str, Any] = {"locale": loc, **extra}
+        return await self._executor.execute_async(region=r, path=path, params=params, client=self._client.async_client)
 
     # ------------------------------------------------------------------
     # Profile API
     # ------------------------------------------------------------------
 
-    def get_static_profile(
-        self, *, region: Region | str, locale: Locale | str, region_id: int
-    ) -> ApiResponse:
+    def get_static_profile(self, *, region: Region | str, locale: Locale | str, region_id: int) -> ApiResponse:
         """Get static profile data for a StarCraft 2 region."""
         return self._get(region, locale, f"/sc2/static/profile/{region_id}")
 
@@ -104,9 +94,7 @@ class SC2API:
         profile_id: int,
     ) -> ApiResponse:
         """Get a StarCraft 2 profile."""
-        return self._get(
-            region, locale, f"/sc2/profile/{region_id}/{realm_id}/{profile_id}"
-        )
+        return self._get(region, locale, f"/sc2/profile/{region_id}/{realm_id}/{profile_id}")
 
     async def get_profile_async(
         self,
@@ -118,9 +106,7 @@ class SC2API:
         profile_id: int,
     ) -> ApiResponse:
         """Get a StarCraft 2 profile."""
-        return await self._get_async(
-            region, locale, f"/sc2/profile/{region_id}/{realm_id}/{profile_id}"
-        )
+        return await self._get_async(region, locale, f"/sc2/profile/{region_id}/{realm_id}/{profile_id}")
 
     def get_profile_ladder_summary(
         self,
@@ -192,9 +178,7 @@ class SC2API:
     # Ladder API
     # ------------------------------------------------------------------
 
-    def get_grandmaster_leaderboard(
-        self, *, region: Region | str, locale: Locale | str, region_id: int
-    ) -> ApiResponse:
+    def get_grandmaster_leaderboard(self, *, region: Region | str, locale: Locale | str, region_id: int) -> ApiResponse:
         """Get grandmaster leaderboard for a region."""
         return self._get(region, locale, f"/sc2/ladder/grandmaster/{region_id}")
 
@@ -202,19 +186,13 @@ class SC2API:
         self, *, region: Region | str, locale: Locale | str, region_id: int
     ) -> ApiResponse:
         """Get grandmaster leaderboard for a region."""
-        return await self._get_async(
-            region, locale, f"/sc2/ladder/grandmaster/{region_id}"
-        )
+        return await self._get_async(region, locale, f"/sc2/ladder/grandmaster/{region_id}")
 
-    def get_season(
-        self, *, region: Region | str, locale: Locale | str, region_id: int
-    ) -> ApiResponse:
+    def get_season(self, *, region: Region | str, locale: Locale | str, region_id: int) -> ApiResponse:
         """Get current ladder season data for a region."""
         return self._get(region, locale, f"/sc2/ladder/season/{region_id}")
 
-    async def get_season_async(
-        self, *, region: Region | str, locale: Locale | str, region_id: int
-    ) -> ApiResponse:
+    async def get_season_async(self, *, region: Region | str, locale: Locale | str, region_id: int) -> ApiResponse:
         """Get current ladder season data for a region."""
         return await self._get_async(region, locale, f"/sc2/ladder/season/{region_id}")
 
@@ -222,15 +200,11 @@ class SC2API:
     # Account / Player API
     # ------------------------------------------------------------------
 
-    def get_player(
-        self, *, region: Region | str, locale: Locale | str, account_id: int
-    ) -> ApiResponse:
+    def get_player(self, *, region: Region | str, locale: Locale | str, account_id: int) -> ApiResponse:
         """Get a StarCraft 2 player by account ID."""
         return self._get(region, locale, f"/sc2/player/{account_id}")
 
-    async def get_player_async(
-        self, *, region: Region | str, locale: Locale | str, account_id: int
-    ) -> ApiResponse:
+    async def get_player_async(self, *, region: Region | str, locale: Locale | str, account_id: int) -> ApiResponse:
         """Get a StarCraft 2 player by account ID."""
         return await self._get_async(region, locale, f"/sc2/player/{account_id}")
 
@@ -343,9 +317,7 @@ class SC2API:
         ladder_id: int,
     ) -> ApiResponse:
         """Get legacy ladder data."""
-        return self._get(
-            region, locale, f"/sc2/legacy/ladder/{region_id}/{ladder_id}"
-        )
+        return self._get(region, locale, f"/sc2/legacy/ladder/{region_id}/{ladder_id}")
 
     async def get_legacy_ladder_async(
         self,
@@ -356,13 +328,9 @@ class SC2API:
         ladder_id: int,
     ) -> ApiResponse:
         """Get legacy ladder data."""
-        return await self._get_async(
-            region, locale, f"/sc2/legacy/ladder/{region_id}/{ladder_id}"
-        )
+        return await self._get_async(region, locale, f"/sc2/legacy/ladder/{region_id}/{ladder_id}")
 
-    def get_legacy_achievements(
-        self, *, region: Region | str, locale: Locale | str, region_id: int
-    ) -> ApiResponse:
+    def get_legacy_achievements(self, *, region: Region | str, locale: Locale | str, region_id: int) -> ApiResponse:
         """Get legacy achievements data."""
         return self._get(region, locale, f"/sc2/legacy/data/achievements/{region_id}")
 
@@ -370,13 +338,9 @@ class SC2API:
         self, *, region: Region | str, locale: Locale | str, region_id: int
     ) -> ApiResponse:
         """Get legacy achievements data."""
-        return await self._get_async(
-            region, locale, f"/sc2/legacy/data/achievements/{region_id}"
-        )
+        return await self._get_async(region, locale, f"/sc2/legacy/data/achievements/{region_id}")
 
-    def get_legacy_rewards(
-        self, *, region: Region | str, locale: Locale | str, region_id: int
-    ) -> ApiResponse:
+    def get_legacy_rewards(self, *, region: Region | str, locale: Locale | str, region_id: int) -> ApiResponse:
         """Get legacy rewards data."""
         return self._get(region, locale, f"/sc2/legacy/data/rewards/{region_id}")
 
@@ -384,9 +348,7 @@ class SC2API:
         self, *, region: Region | str, locale: Locale | str, region_id: int
     ) -> ApiResponse:
         """Get legacy rewards data."""
-        return await self._get_async(
-            region, locale, f"/sc2/legacy/data/rewards/{region_id}"
-        )
+        return await self._get_async(region, locale, f"/sc2/legacy/data/rewards/{region_id}")
 
     # ------------------------------------------------------------------
     # League API (formerly game_data split — a single endpoint)
