@@ -191,6 +191,7 @@ endpoints:
   - method_name: "get_connected_realms_index"
     pattern: "simple_index"
     resource: "connected-realm"
+    namespace_type: "dynamic"
     description: "Get an index of connected realms"
     response_model: "ConnectedRealmIndex"
 
@@ -198,12 +199,14 @@ endpoints:
     pattern: "get_by_id"
     resource: "connected-realm"
     param_name: "connected_realm_id"
+    namespace_type: "dynamic"
     description: "Get a connected realm by ID"
     response_model: "ConnectedRealm"
 
   - method_name: "search_connected_realm"
     pattern: "search"
     resource: "connected-realm"
+    namespace_type: "dynamic"
     description: "Search for connected realms"
     response_model: "SearchResults"
 
