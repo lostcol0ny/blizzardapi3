@@ -1,15 +1,51 @@
-"""BlizzardAPI v3 - Modern Python wrapper for the Blizzard API."""
+"""BlizzardAPI — modern Python wrapper for Blizzard's Battle.net API."""
 
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 from .blizzard_api import BlizzardAPI
 from .core.executor import ApiResponse
-from .types import Locale, Region
+from .exceptions import (
+    AuthenticationError,
+    BadRequestError,
+    BlizzardAPIError,
+    ForbiddenError,
+    InvalidCredentialsError,
+    InvalidLocaleError,
+    InvalidRegionError,
+    MissingParameterError,
+    NotFoundError,
+    RateLimitError,
+    RequestError,
+    ServerError,
+    TokenError,
+    TokenExpiredError,
+    ValidationError,
+)
+from .types import ClassicTrack, Locale, Region
 
 __all__ = [
     "__version__",
-    "ApiResponse",
+    # Core
     "BlizzardAPI",
-    "Region",
+    "ApiResponse",
+    # Types
+    "ClassicTrack",
     "Locale",
+    "Region",
+    # Exceptions
+    "AuthenticationError",
+    "BadRequestError",
+    "BlizzardAPIError",
+    "ForbiddenError",
+    "InvalidCredentialsError",
+    "InvalidLocaleError",
+    "InvalidRegionError",
+    "MissingParameterError",
+    "NotFoundError",
+    "RateLimitError",
+    "RequestError",
+    "ServerError",
+    "TokenError",
+    "TokenExpiredError",
+    "ValidationError",
 ]
