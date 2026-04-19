@@ -13,6 +13,20 @@ class Region(StrEnum):
     CN = "cn"
 
 
+class ClassicTrack(StrEnum):
+    """WoW Classic release tracks.
+
+    Each track uses a different namespace token:
+      era          -> static-classic1x-{region}
+      progression  -> static-classic-{region}
+      anniversary  -> static-classicbcc-{region}  (placeholder until released)
+    """
+
+    era = "classic1x"
+    progression = "classic"
+    anniversary = "classicbcc"
+
+
 class Locale(StrEnum):
     """Blizzard API locales."""
 
