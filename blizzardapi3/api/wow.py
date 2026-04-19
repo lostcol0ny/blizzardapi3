@@ -1,76 +1,36 @@
-"""World of Warcraft API facade."""
+"""World of Warcraft API facade.
 
-from ..core import BaseClient, EndpointRegistry, MethodFactory, RequestExecutor
+Composes the WoW retail sub-APIs and the Classic sub-facades for each
+release track. Each sub-API module owns its own endpoint methods
+directly, so there's no dynamic binding and no stubs to keep in sync.
+"""
 
+from __future__ import annotations
 
-class WowGameDataAPI:
-    """WoW Game Data API with dynamically generated methods."""
-
-    def __init__(self, client: BaseClient, executor: RequestExecutor, registry: EndpointRegistry):
-        """Initialize WoW Game Data API.
-
-        Args:
-            client: Base client for session management
-            executor: Request executor
-            registry: Endpoint registry
-        """
-        self.client = client
-        self.executor = executor
-        self.registry = registry
-
-        # Generate and attach all methods
-        factory = MethodFactory(executor, registry)
-        methods = factory.generate_all_methods("wow", "game_data")
-
-        for method_name, (sync_method, async_method) in methods.items():
-            # Bind methods to this instance
-            setattr(self, method_name, sync_method.__get__(self, type(self)))
-            setattr(self, f"{method_name}_async", async_method.__get__(self, type(self)))
-
-
-class WowProfileAPI:
-    """WoW Profile API with dynamically generated methods."""
-
-    def __init__(self, client: BaseClient, executor: RequestExecutor, registry: EndpointRegistry):
-        """Initialize WoW Profile API.
-
-        Args:
-            client: Base client for session management
-            executor: Request executor
-            registry: Endpoint registry
-        """
-        self.client = client
-        self.executor = executor
-        self.registry = registry
-
-        # Generate and attach all methods
-        factory = MethodFactory(executor, registry)
-        methods = factory.generate_all_methods("wow", "profile")
-
-        for method_name, (sync_method, async_method) in methods.items():
-            # Bind methods to this instance
-            setattr(self, method_name, sync_method.__get__(self, type(self)))
-            setattr(self, f"{method_name}_async", async_method.__get__(self, type(self)))
+from ..core.client import BaseClient
+from ..core.executor import RequestExecutor
+from ..types import ClassicTrack
+from .wow_classic import WowClassic
+from .wow_game_data import WowGameData
+from .wow_profile import WowProfile
 
 
 class WowAPI:
-    """World of Warcraft API facade.
+    """Access point for WoW retail and Classic APIs.
 
-    Provides access to:
-    - game_data: WoW Game Data API (achievements, items, etc.)
-    - profile: WoW Profile API (characters, guilds, etc.)
+    Retail::
+
+        api.wow.game_data.get_achievement(...)
+        api.wow.profile.get_character_profile_summary(...)
+
+    Classic (per-track sub-facade; default is Progression / MoP Classic)::
+
+        api.wow.classic.game_data.get_achievement(...)
+        api.wow.classic_era.game_data.get_achievement(...)  # Era / Classic 1x
     """
 
-    def __init__(self, client: BaseClient, registry: EndpointRegistry):
-        """Initialize WoW API.
-
-        Args:
-            client: Base client for session management
-            registry: Endpoint registry
-        """
-        self.client = client
-        executor = RequestExecutor(client.token_manager)
-
-        # Initialize sub-APIs
-        self.game_data = WowGameDataAPI(client, executor, registry)
-        self.profile = WowProfileAPI(client, executor, registry)
+    def __init__(self, client: BaseClient, executor: RequestExecutor):
+        self.game_data = WowGameData(client, executor)
+        self.profile = WowProfile(client, executor)
+        self.classic = WowClassic(client, executor, track=ClassicTrack.progression)
+        self.classic_era = WowClassic(client, executor, track=ClassicTrack.era)

@@ -1,56 +1,49 @@
-"""Main BlizzardAPI client."""
+"""Top-level BlizzardAPI facade.
 
-from .api import D3API, SC2API, HearthstoneAPI, WowAPI
-from .core import BaseClient, EndpointRegistry
-from .types import Locale, Region
+Composes the four game sub-APIs on top of the shared :class:`BaseClient`
+(httpx sessions + token manager) and a single :class:`RequestExecutor`
+that all sub-APIs share. Use as a context manager to guarantee cleanup
+of the underlying httpx sessions::
+
+    with BlizzardAPI(client_id, client_secret) as api:
+        achievement = api.wow.game_data.get_achievement(
+            region="us", locale="en_US", achievement_id=6
+        )
+
+    async with BlizzardAPI(client_id, client_secret) as api:
+        achievement = await api.wow.game_data.get_achievement_async(
+            region="us", locale="en_US", achievement_id=6
+        )
+"""
+
+from __future__ import annotations
+
+from .api.d3 import D3API
+from .api.hearthstone import HearthstoneAPI
+from .api.sc2 import SC2API
+from .api.wow import WowAPI
+from .core.client import BaseClient
+from .core.executor import RequestExecutor
 
 
 class BlizzardAPI(BaseClient):
-    """Main Blizzard API client.
+    """Entry point for all Blizzard game APIs.
 
-    Provides access to all Blizzard game APIs with proper session management,
-    authentication, and error handling.
-
-    Example:
-        Synchronous usage:
-            with BlizzardAPI(client_id, client_secret) as api:
-                data = api.wow.game_data.get_achievement(
-                    region="us",
-                    locale="en_US",
-                    achievement_id=6
-                )
-
-        Asynchronous usage:
-            async with BlizzardAPI(client_id, client_secret) as api:
-                data = await api.wow.game_data.get_achievement_async(
-                    region="us",
-                    locale="en_US",
-                    achievement_id=6
-                )
+    Inherits session / token management from :class:`BaseClient` and
+    composes four sub-APIs: ``wow``, ``d3``, ``sc2``, ``hearthstone``.
     """
 
     def __init__(
         self,
         client_id: str,
         client_secret: str,
-        region: Region | str = Region.US,
-        locale: Locale | str | None = None,
+        region: str = "us",
+        locale: str | None = None,
     ):
-        """Initialize Blizzard API client.
+        super().__init__(client_id, client_secret, region=region, locale=locale)
+        executor = RequestExecutor(self.token_manager)
 
-        Args:
-            client_id: Blizzard API client ID
-            client_secret: Blizzard API client secret
-            region: Default region (defaults to US)
-            locale: Default locale (defaults to region's default)
-        """
-        super().__init__(client_id, client_secret, region, locale)
-
-        # Initialize endpoint registry
-        self.registry = EndpointRegistry()
-
-        # Initialize game APIs
-        self.wow = WowAPI(self, self.registry)
-        self.d3 = D3API(self, self.registry)
-        self.hearthstone = HearthstoneAPI(self, self.registry)
-        self.sc2 = SC2API(self, self.registry)
+        self.wow = WowAPI(self, executor)
+        self.d3 = D3API(self, executor)
+        self.sc2 = SC2API(self, executor)
+        self.hearthstone = HearthstoneAPI(self, executor)

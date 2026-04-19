@@ -1,177 +1,85 @@
-"""OAuth token management."""
+"""OAuth client-credentials token management (httpx-based)."""
+
+from __future__ import annotations
 
 import time
+from typing import Any
 
-import aiohttp
-import requests
+import httpx
 
 from ..exceptions import TokenError
 
+TOKEN_BUFFER_SECONDS = 300
+TOKEN_TIMEOUT = 10.0
+
 
 class TokenManager:
-    """Manages OAuth token lifecycle with automatic refresh.
+    """Caches an OAuth token and refreshes it when near expiry.
 
-    Attributes:
-        TOKEN_BUFFER_SECONDS: Refresh tokens 5 minutes before expiry
+    A single TokenManager is shared across sync and async clients — the
+    underlying token is the same regardless of transport.
     """
 
-    TOKEN_BUFFER_SECONDS = 300  # 5 minutes
-
     def __init__(self, client_id: str, client_secret: str):
-        """Initialize token manager.
-
-        Args:
-            client_id: Blizzard API client ID
-            client_secret: Blizzard API client secret
-        """
-        self.client_id = client_id
-        self.client_secret = client_secret
-
+        self._basic_auth = httpx.BasicAuth(client_id, client_secret)
         self._token: str | None = None
-        self._token_type: str | None = None
         self._expires_at: float | None = None
 
-    def is_token_valid(self) -> bool:
-        """Check if current token is valid.
-
-        Returns:
-            True if token exists and hasn't expired (with buffer)
-        """
-        if not self._token or not self._expires_at:
+    def is_valid(self) -> bool:
+        if self._token is None or self._expires_at is None:
             return False
-        return time.time() < (self._expires_at - self.TOKEN_BUFFER_SECONDS)
-
-    def get_token(self, region: str, session: requests.Session) -> str:
-        """Get valid access token (synchronous).
-
-        Args:
-            region: API region for OAuth endpoint
-            session: requests Session to use
-
-        Returns:
-            Valid access token
-
-        Raises:
-            TokenError: If token fetch fails
-        """
-        if self.is_token_valid():
-            return self._token
-
-        return self._fetch_token(region, session)
-
-    async def get_token_async(self, region: str, session: aiohttp.ClientSession) -> str:
-        """Get valid access token (asynchronous).
-
-        Args:
-            region: API region for OAuth endpoint
-            session: aiohttp ClientSession to use
-
-        Returns:
-            Valid access token
-
-        Raises:
-            TokenError: If token fetch fails
-        """
-        if self.is_token_valid():
-            return self._token
-
-        return await self._fetch_token_async(region, session)
-
-    def _fetch_token(self, region: str, session: requests.Session) -> str:
-        """Fetch new access token (synchronous).
-
-        Args:
-            region: API region for OAuth endpoint
-            session: requests Session to use
-
-        Returns:
-            New access token
-
-        Raises:
-            TokenError: If token request fails
-        """
-        url = self._get_oauth_url(region)
-
-        try:
-            response = session.post(
-                url, auth=(self.client_id, self.client_secret), data={"grant_type": "client_credentials"}, timeout=10
-            )
-
-            if response.status_code != 200:
-                raise TokenError(
-                    f"Failed to obtain token: {response.status_code}",
-                    status_code=response.status_code,
-                    request_url=url,
-                    response_data=response.json() if response.text else None,
-                )
-
-            data = response.json()
-            self._token = data["access_token"]
-            self._token_type = data["token_type"]
-            self._expires_at = time.time() + data["expires_in"]
-
-            return self._token
-
-        except requests.RequestException as e:
-            raise TokenError(f"Token request failed: {str(e)}", request_url=url)
-
-    async def _fetch_token_async(self, region: str, session: aiohttp.ClientSession) -> str:
-        """Fetch new access token (asynchronous).
-
-        Args:
-            region: API region for OAuth endpoint
-            session: aiohttp ClientSession to use
-
-        Returns:
-            New access token
-
-        Raises:
-            TokenError: If token request fails
-        """
-        url = self._get_oauth_url(region)
-
-        try:
-            async with session.post(
-                url,
-                auth=aiohttp.BasicAuth(self.client_id, self.client_secret),
-                data={"grant_type": "client_credentials"},
-                timeout=aiohttp.ClientTimeout(total=10),
-            ) as response:
-
-                if response.status != 200:
-                    response_data = await response.json() if response.content_type == "application/json" else None
-                    raise TokenError(
-                        f"Failed to obtain token: {response.status}",
-                        status_code=response.status,
-                        request_url=url,
-                        response_data=response_data,
-                    )
-
-                data = await response.json()
-                self._token = data["access_token"]
-                self._token_type = data["token_type"]
-                self._expires_at = time.time() + data["expires_in"]
-
-                return self._token
-
-        except aiohttp.ClientError as e:
-            raise TokenError(f"Token request failed: {str(e)}", request_url=url)
+        return time.time() < (self._expires_at - TOKEN_BUFFER_SECONDS)
 
     def invalidate(self) -> None:
-        """Invalidate current token, forcing a refresh on next request."""
         self._token = None
         self._expires_at = None
 
-    @staticmethod
-    def _get_oauth_url(region: str) -> str:
-        """Get OAuth URL for region.
+    def get_token(self, region: str, client: httpx.Client) -> str:
+        if self.is_valid():
+            return self._token  # type: ignore[return-value]
+        url = _oauth_url(region)
+        response = client.post(
+            url,
+            auth=self._basic_auth,
+            data={"grant_type": "client_credentials"},
+            timeout=TOKEN_TIMEOUT,
+        )
+        return self._store(response, url)
 
-        Args:
-            region: API region
+    async def get_token_async(self, region: str, client: httpx.AsyncClient) -> str:
+        if self.is_valid():
+            return self._token  # type: ignore[return-value]
+        url = _oauth_url(region)
+        response = await client.post(
+            url,
+            auth=self._basic_auth,
+            data={"grant_type": "client_credentials"},
+            timeout=TOKEN_TIMEOUT,
+        )
+        return self._store(response, url)
 
-        Returns:
-            OAuth token endpoint URL
-        """
-        if region == "cn":
-            return "https://oauth.battlenet.com.cn/token"
-        return f"https://{region}.battle.net/oauth/token"
+    def _store(self, response: httpx.Response, url: str) -> str:
+        if response.status_code != 200:
+            raise TokenError(
+                f"Failed to obtain token: {response.status_code}",
+                status_code=response.status_code,
+                request_url=url,
+                response_data=_safe_json(response),
+            )
+        data = response.json()
+        self._token = data["access_token"]
+        self._expires_at = time.time() + data["expires_in"]
+        return self._token
+
+
+def _oauth_url(region: str) -> str:
+    if region == "cn":
+        return "https://oauth.battlenet.com.cn/token"
+    return f"https://{region}.battle.net/oauth/token"
+
+
+def _safe_json(response: httpx.Response) -> dict[str, Any] | None:
+    try:
+        return response.json()
+    except ValueError:
+        return None

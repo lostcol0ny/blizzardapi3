@@ -1,9 +1,10 @@
-"""HTTP request executor with retry logic and error handling."""
+"""Unified request executor — one implementation, sync and async paths."""
+
+from __future__ import annotations
 
 from typing import Any
 
-import aiohttp
-import requests
+import httpx
 
 from ..exceptions import (
     BadRequestError,
@@ -14,270 +15,124 @@ from ..exceptions import (
     ServerError,
 )
 from .auth import TokenManager
-from .context import RequestContext
+
+BASE_URL = "https://{region}.api.blizzard.com"
+REQUEST_TIMEOUT = 30.0
 
 
 class ApiResponse(dict):
-    """API response that behaves like a dict but also exposes headers.
+    """dict with ``.headers`` and ``.status_code`` attached.
 
-    Extends dict so existing code using bracket notation, .get(),
-    len(), and iteration continues to work unchanged.
-
-    Attributes:
-        headers: Response headers as a dict
-        status_code: HTTP status code (always 200 for successful responses)
+    Preserves v3's bracket-access contract while exposing HTTP metadata.
     """
 
-    def __init__(self, data: dict[str, Any], headers: dict[str, str], status_code: int = 200):
-        """Initialize API response.
-
-        Args:
-            data: Response JSON data
-            headers: Response headers
-            status_code: HTTP status code
-        """
+    def __init__(self, data: dict[str, Any], headers: dict[str, str], status_code: int):
         super().__init__(data)
         self._headers = headers
         self._status_code = status_code
 
     @property
     def headers(self) -> dict[str, str]:
-        """Response headers."""
         return self._headers
 
     @property
     def status_code(self) -> int:
-        """HTTP status code."""
         return self._status_code
 
 
 class RequestExecutor:
-    """Executes HTTP requests to Blizzard API with error handling.
+    """Executes a request with automatic token refresh on 401.
 
-    Handles token management, retries, and converts HTTP errors
-    to appropriate exception types.
+    Sync and async paths are ~15 lines each. All error translation,
+    JSON decoding, and retry policy is shared via :func:`_decode`.
     """
 
-    BASE_URL = "https://{region}.api.blizzard.com"
-    MAX_RETRIES = 1
-
     def __init__(self, token_manager: TokenManager):
-        """Initialize request executor.
+        self._tokens = token_manager
 
-        Args:
-            token_manager: Token manager for OAuth authentication
-        """
-        self.token_manager = token_manager
+    def execute(
+        self,
+        *,
+        region: str,
+        path: str,
+        params: dict[str, Any],
+        client: httpx.Client,
+    ) -> ApiResponse:
+        url = f"{BASE_URL.format(region=region)}{path}"
+        user_token = params.pop("access_token", None)
+        token = user_token or self._tokens.get_token(region, client)
 
-    def execute(self, context: RequestContext, session: requests.Session) -> ApiResponse:
-        """Execute synchronous API request.
+        response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        Args:
-            context: Request context with path, params, etc.
-            session: requests Session to use
+        if response.status_code == 401 and not user_token:
+            self._tokens.invalidate()
+            token = self._tokens.get_token(region, client)
+            response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        Returns:
-            API response with data and headers
+        return _decode(response, url)
 
-        Raises:
-            NotFoundError: Resource not found (404)
-            RateLimitError: Rate limit exceeded (429)
-            ServerError: Server error (5xx)
-            RequestError: Other request errors
-        """
-        # Get access token
-        if context.access_token:
-            token = context.access_token
-        else:
-            token = self.token_manager.get_token(context.region, session)
+    async def execute_async(
+        self,
+        *,
+        region: str,
+        path: str,
+        params: dict[str, Any],
+        client: httpx.AsyncClient,
+    ) -> ApiResponse:
+        url = f"{BASE_URL.format(region=region)}{path}"
+        user_token = params.pop("access_token", None)
+        token = user_token or await self._tokens.get_token_async(region, client)
 
-        # Build URL
-        url = f"{self.BASE_URL.format(region=context.region)}{context.path}"
+        response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        # Prepare params and headers
-        params = context.query_params
-        headers = {"Authorization": f"Bearer {token}"}
+        if response.status_code == 401 and not user_token:
+            self._tokens.invalidate()
+            token = await self._tokens.get_token_async(region, client)
+            response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        # Execute with retry logic
-        for attempt in range(self.MAX_RETRIES + 1):
-            try:
-                response = session.get(url, params=params, headers=headers, timeout=30)
+        return _decode(response, url)
 
-                if response.status_code == 200:
-                    return ApiResponse(response.json(), dict(response.headers), response.status_code)
 
-                # Handle 401 - token might be invalid, retry once
-                if response.status_code == 401 and attempt < self.MAX_RETRIES and not context.access_token:
-                    self.token_manager.invalidate()
-                    token = self.token_manager.get_token(context.region, session)
-                    headers["Authorization"] = f"Bearer {token}"
-                    continue
+def _auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
 
-                # Handle other errors
-                self._handle_error_response(response, url)
 
-            except requests.RequestException as e:
-                raise RequestError(f"Request failed: {str(e)}", request_url=url)
+def _decode(response: httpx.Response, url: str) -> ApiResponse:
+    """Turn an ``httpx.Response`` into :class:`ApiResponse` or raise an error.
 
-        raise RequestError("Max retries exceeded", request_url=url)
+    Works for both sync and async — ``httpx.Response.json()`` is synchronous
+    in both transports.
+    """
+    if response.status_code == 200:
+        return ApiResponse(response.json(), dict(response.headers), 200)
 
-    async def execute_async(self, context: RequestContext, session: aiohttp.ClientSession) -> ApiResponse:
-        """Execute asynchronous API request.
+    try:
+        body = response.json()
+    except ValueError:
+        body = None
 
-        Args:
-            context: Request context with path, params, etc.
-            session: aiohttp ClientSession to use
-
-        Returns:
-            API response with data and headers
-
-        Raises:
-            NotFoundError: Resource not found (404)
-            RateLimitError: Rate limit exceeded (429)
-            ServerError: Server error (5xx)
-            RequestError: Other request errors
-        """
-        # Get access token
-        if context.access_token:
-            token = context.access_token
-        else:
-            token = await self.token_manager.get_token_async(context.region, session)
-
-        # Build URL
-        url = f"{self.BASE_URL.format(region=context.region)}{context.path}"
-
-        # Prepare params and headers
-        params = context.query_params
-        headers = {"Authorization": f"Bearer {token}"}
-
-        # Execute with retry logic
-        for attempt in range(self.MAX_RETRIES + 1):
-            try:
-                async with session.get(
-                    url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=30)
-                ) as response:
-
-                    if response.status == 200:
-                        return ApiResponse(await response.json(), dict(response.headers), response.status)
-
-                    # Handle 401 - token might be invalid, retry once
-                    if response.status == 401 and attempt < self.MAX_RETRIES and not context.access_token:
-                        self.token_manager.invalidate()
-                        token = await self.token_manager.get_token_async(context.region, session)
-                        headers["Authorization"] = f"Bearer {token}"
-                        continue
-
-                    # Handle other errors
-                    await self._handle_error_response_async(response, url)
-
-            except aiohttp.ClientError as e:
-                raise RequestError(f"Request failed: {str(e)}", request_url=url)
-
-        raise RequestError("Max retries exceeded", request_url=url)
-
-    def _handle_error_response(self, response: requests.Response, url: str) -> None:
-        """Handle HTTP error responses (synchronous).
-
-        Args:
-            response: HTTP response object
-            url: Request URL
-
-        Raises:
-            Appropriate exception based on status code
-        """
-        error_data = None
-        try:
-            error_data = response.json()
-        except Exception:
-            pass
-
-        status_code = response.status_code
-
-        if status_code == 400:
-            raise BadRequestError(
-                "Bad request - invalid parameters", status_code=400, request_url=url, response_data=error_data
-            )
-
-        if status_code == 403:
-            raise ForbiddenError(
-                "Forbidden - insufficient permissions",
-                status_code=403,
-                request_url=url,
-                response_data=error_data,
-            )
-
-        if status_code == 404:
-            raise NotFoundError("Resource not found", status_code=404, request_url=url, response_data=error_data)
-
-        if status_code == 429:
+    status = response.status_code
+    match status:
+        case 400:
+            raise BadRequestError("Bad request", status_code=400, request_url=url, response_data=body)
+        case 403:
+            raise ForbiddenError("Forbidden", status_code=403, request_url=url, response_data=body)
+        case 404:
+            raise NotFoundError("Not found", status_code=404, request_url=url, response_data=body)
+        case 429:
             retry_after = response.headers.get("Retry-After")
             raise RateLimitError(
                 "Rate limit exceeded",
                 status_code=429,
                 request_url=url,
                 retry_after=int(retry_after) if retry_after else None,
-                response_data=error_data,
+                response_data=body,
             )
-
-        if 500 <= status_code < 600:
+        case _ if 500 <= status < 600:
             raise ServerError(
-                f"Server error: {status_code}", status_code=status_code, request_url=url, response_data=error_data
+                f"Server error: {status}", status_code=status, request_url=url, response_data=body
             )
-
-        raise RequestError(
-            f"Request failed: {status_code}", status_code=status_code, request_url=url, response_data=error_data
-        )
-
-    async def _handle_error_response_async(self, response: aiohttp.ClientResponse, url: str) -> None:
-        """Handle HTTP error responses (asynchronous).
-
-        Args:
-            response: HTTP response object
-            url: Request URL
-
-        Raises:
-            Appropriate exception based on status code
-        """
-        error_data = None
-        try:
-            if response.content_type == "application/json":
-                error_data = await response.json()
-        except Exception:
-            pass
-
-        status_code = response.status
-
-        if status_code == 400:
-            raise BadRequestError(
-                "Bad request - invalid parameters", status_code=400, request_url=url, response_data=error_data
+        case _:
+            raise RequestError(
+                f"Request failed: {status}", status_code=status, request_url=url, response_data=body
             )
-
-        if status_code == 403:
-            raise ForbiddenError(
-                "Forbidden - insufficient permissions",
-                status_code=403,
-                request_url=url,
-                response_data=error_data,
-            )
-
-        if status_code == 404:
-            raise NotFoundError("Resource not found", status_code=404, request_url=url, response_data=error_data)
-
-        if status_code == 429:
-            retry_after = response.headers.get("Retry-After")
-            raise RateLimitError(
-                "Rate limit exceeded",
-                status_code=429,
-                request_url=url,
-                retry_after=int(retry_after) if retry_after else None,
-                response_data=error_data,
-            )
-
-        if 500 <= status_code < 600:
-            raise ServerError(
-                f"Server error: {status_code}", status_code=status_code, request_url=url, response_data=error_data
-            )
-
-        raise RequestError(
-            f"Request failed: {status_code}", status_code=status_code, request_url=url, response_data=error_data
-        )
