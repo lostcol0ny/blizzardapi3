@@ -13,7 +13,12 @@
   },
   "hooks": {
     "after:bump": [
-      "sed -i '0,/^version = \".*\"/{s/^version = \".*\"/version = \"${version}\"/}' pyproject.toml"
+      "sed -i '0,/^version = \".*\"/{s/^version = \".*\"/version = \"${version}\"/}' pyproject.toml",
+      "rm -rf dist",
+      "python -m build"
+    ],
+    "after:release": [
+      "twine upload dist/* --skip-existing --username __token__ --password $PYPI_API_TOKEN"
     ]
   }
 }
