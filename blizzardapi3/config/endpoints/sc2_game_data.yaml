@@ -6,7 +6,7 @@ api_type: "game_data"
 endpoints:
   # League API
   - method_name: "get_league_data"
-    path_template: "/sc2/league/{season_id}/{queue_id}/{team_type}/{league_id}"
+    path_template: "/data/sc2/league/{season_id}/{queue_id}/{team_type}/{league_id}"
     params: ["region", "locale", "season_id", "queue_id", "team_type", "league_id"]
     namespace_type: "none"
     description: "Get league data for a specific season, queue, team type, and league"
