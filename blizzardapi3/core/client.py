@@ -1,28 +1,22 @@
-"""Base API client with session management."""
+"""Base client with httpx session management."""
 
-import aiohttp
-import requests
+from __future__ import annotations
+
+import httpx
 
 from ..types import Locale, Region, get_default_locale
 from .auth import TokenManager
 
 
 class BaseClient:
-    """Base API client with proper session management.
+    """Owns the httpx sync/async sessions and the token manager.
 
-    Manages HTTP sessions for both sync and async requests,
-    with automatic cleanup via context managers.
+    Use as a context manager::
 
-    Example:
-        Synchronous usage:
-            with BaseClient(client_id, client_secret) as client:
-                # Use client
-                pass
-
-        Asynchronous usage:
-            async with BaseClient(client_id, client_secret) as client:
-                # Use client
-                pass
+        with BlizzardAPI(client_id, client_secret) as api:
+            ...
+        async with BlizzardAPI(client_id, client_secret) as api:
+            ...
     """
 
     def __init__(
@@ -32,113 +26,49 @@ class BaseClient:
         region: Region | str = Region.US,
         locale: Locale | str | None = None,
     ):
-        """Initialize API client.
-
-        Args:
-            client_id: Blizzard API client ID
-            client_secret: Blizzard API client secret
-            region: Default region (defaults to US)
-            locale: Default locale (defaults to region's default locale)
-        """
         self.client_id = client_id
         self.client_secret = client_secret
+        self.default_region = Region(region) if isinstance(region, str) else region
+        self.default_locale = (
+            get_default_locale(self.default_region)
+            if locale is None
+            else (Locale(locale) if isinstance(locale, str) else locale)
+        )
 
-        # Convert region to enum if string
-        if isinstance(region, str):
-            self.default_region = Region(region)
-        else:
-            self.default_region = region
-
-        # Set default locale
-        if locale is None:
-            self.default_locale = get_default_locale(self.default_region)
-        elif isinstance(locale, str):
-            self.default_locale = Locale(locale)
-        else:
-            self.default_locale = locale
-
-        # Session management
-        self._sync_session: requests.Session | None = None
-        self._async_session: aiohttp.ClientSession | None = None
-
-        # Token manager (shared between sync and async)
         self.token_manager = TokenManager(client_id, client_secret)
+        self._sync_client: httpx.Client | None = None
+        self._async_client: httpx.AsyncClient | None = None
 
     @property
-    def sync_session(self) -> requests.Session:
-        """Get or create synchronous session.
-
-        Returns:
-            Active requests.Session instance
-        """
-        if self._sync_session is None:
-            self._sync_session = requests.Session()
-        return self._sync_session
+    def sync_client(self) -> httpx.Client:
+        if self._sync_client is None or self._sync_client.is_closed:
+            self._sync_client = httpx.Client()
+        return self._sync_client
 
     @property
-    def async_session(self) -> aiohttp.ClientSession:
-        """Get or create asynchronous session.
-
-        Returns:
-            Active aiohttp.ClientSession instance
-        """
-        if self._async_session is None or self._async_session.closed:
-            self._async_session = aiohttp.ClientSession()
-        return self._async_session
+    def async_client(self) -> httpx.AsyncClient:
+        if self._async_client is None or self._async_client.is_closed:
+            self._async_client = httpx.AsyncClient()
+        return self._async_client
 
     def close(self) -> None:
-        """Close synchronous session."""
-        if self._sync_session is not None:
-            self._sync_session.close()
-            self._sync_session = None
+        if self._sync_client is not None and not self._sync_client.is_closed:
+            self._sync_client.close()
+        self._sync_client = None
 
     async def aclose(self) -> None:
-        """Close asynchronous session."""
-        if self._async_session is not None and not self._async_session.closed:
-            await self._async_session.close()
-            self._async_session = None
+        if self._async_client is not None and not self._async_client.is_closed:
+            await self._async_client.aclose()
+        self._async_client = None
 
-    # Context manager support (sync)
-
-    def __enter__(self):
-        """Enter synchronous context manager.
-
-        Returns:
-            Self for context manager usage
-        """
+    def __enter__(self) -> BaseClient:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit synchronous context manager.
-
-        Closes sync session automatically.
-        """
+    def __exit__(self, *_: object) -> None:
         self.close()
 
-    # Async context manager support
-
-    async def __aenter__(self):
-        """Enter asynchronous context manager.
-
-        Returns:
-            Self for async context manager usage
-        """
+    async def __aenter__(self) -> BaseClient:
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit asynchronous context manager.
-
-        Closes async session automatically.
-        """
+    async def __aexit__(self, *_: object) -> None:
         await self.aclose()
-
-    def __del__(self):
-        """Cleanup on deletion.
-
-        Attempts to close sessions if they're still open.
-        """
-        try:
-            if self._sync_session is not None:
-                self._sync_session.close()
-        except Exception:
-            pass
