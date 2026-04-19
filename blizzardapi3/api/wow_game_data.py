@@ -530,6 +530,50 @@ class WowGameData:
         """Get an item appearance set by ID."""
         return await self._static_get_async(region, locale, f"/data/wow/item-appearance/set/{appearance_set_id}")
 
+    def get_item_appearance_sets_index(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
+        """Get an index of item appearance sets."""
+        return self._static_get(region, locale, "/data/wow/item-appearance/set/index")
+
+    async def get_item_appearance_sets_index_async(
+        self, *, region: Region | str, locale: Locale | str
+    ) -> ApiResponse:
+        """Get an index of item appearance sets."""
+        return await self._static_get_async(region, locale, "/data/wow/item-appearance/set/index")
+
+    def get_item_appearance_slots_index(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
+        """Get an index of item appearance slots."""
+        return self._static_get(region, locale, "/data/wow/item-appearance/slot/index")
+
+    async def get_item_appearance_slots_index_async(
+        self, *, region: Region | str, locale: Locale | str
+    ) -> ApiResponse:
+        """Get an index of item appearance slots."""
+        return await self._static_get_async(region, locale, "/data/wow/item-appearance/slot/index")
+
+    def get_item_appearance_slot(
+        self, *, region: Region | str, locale: Locale | str, slot_type: str
+    ) -> ApiResponse:
+        """Get item appearances for a slot (e.g. ``HEAD``, ``CHEST``, ``SHOULDER``)."""
+        return self._static_get(region, locale, f"/data/wow/item-appearance/slot/{slot_type}")
+
+    async def get_item_appearance_slot_async(
+        self, *, region: Region | str, locale: Locale | str, slot_type: str
+    ) -> ApiResponse:
+        """Get item appearances for a slot (e.g. ``HEAD``, ``CHEST``, ``SHOULDER``)."""
+        return await self._static_get_async(region, locale, f"/data/wow/item-appearance/slot/{slot_type}")
+
+    def search_item_appearance(
+        self, *, region: Region | str, locale: Locale | str, **filters: Any
+    ) -> ApiResponse:
+        """Search for item appearances."""
+        return self._static_get(region, locale, "/data/wow/search/item-appearance", **filters)
+
+    async def search_item_appearance_async(
+        self, *, region: Region | str, locale: Locale | str, **filters: Any
+    ) -> ApiResponse:
+        """Search for item appearances."""
+        return await self._static_get_async(region, locale, "/data/wow/search/item-appearance", **filters)
+
     # ------------------------------------------------------------------
     # Neighborhood Map — new in Midnight
     # ------------------------------------------------------------------
@@ -553,6 +597,36 @@ class WowGameData:
     ) -> ApiResponse:
         """Get a neighborhood map by ID."""
         return await self._static_get_async(region, locale, f"/data/wow/neighborhood-map/{neighborhood_map_id}")
+
+    def get_neighborhood(
+        self,
+        *,
+        region: Region | str,
+        locale: Locale | str,
+        neighborhood_map_id: int,
+        neighborhood_id: int,
+    ) -> ApiResponse:
+        """Get a neighborhood within a neighborhood map."""
+        return self._static_get(
+            region,
+            locale,
+            f"/data/wow/neighborhood-map/{neighborhood_map_id}/neighborhood/{neighborhood_id}",
+        )
+
+    async def get_neighborhood_async(
+        self,
+        *,
+        region: Region | str,
+        locale: Locale | str,
+        neighborhood_map_id: int,
+        neighborhood_id: int,
+    ) -> ApiResponse:
+        """Get a neighborhood within a neighborhood map."""
+        return await self._static_get_async(
+            region,
+            locale,
+            f"/data/wow/neighborhood-map/{neighborhood_map_id}/neighborhood/{neighborhood_id}",
+        )
 
     # ------------------------------------------------------------------
     # Item
