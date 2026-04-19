@@ -82,8 +82,8 @@ credentials.json
 # OAuth tokens and temporary test files
 access_token.txt
 access_token.json
-test_*.py
-!tests/test_*.py  # Keep actual test files
+/test_*.py
+!tests/
 oauth_helper.py
 oauth_manual.py
 get_oauth_url.py
