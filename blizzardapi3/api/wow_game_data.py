@@ -534,9 +534,7 @@ class WowGameData:
         """Get an index of item appearance sets."""
         return self._static_get(region, locale, "/data/wow/item-appearance/set/index")
 
-    async def get_item_appearance_sets_index_async(
-        self, *, region: Region | str, locale: Locale | str
-    ) -> ApiResponse:
+    async def get_item_appearance_sets_index_async(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get an index of item appearance sets."""
         return await self._static_get_async(region, locale, "/data/wow/item-appearance/set/index")
 
@@ -544,15 +542,11 @@ class WowGameData:
         """Get an index of item appearance slots."""
         return self._static_get(region, locale, "/data/wow/item-appearance/slot/index")
 
-    async def get_item_appearance_slots_index_async(
-        self, *, region: Region | str, locale: Locale | str
-    ) -> ApiResponse:
+    async def get_item_appearance_slots_index_async(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get an index of item appearance slots."""
         return await self._static_get_async(region, locale, "/data/wow/item-appearance/slot/index")
 
-    def get_item_appearance_slot(
-        self, *, region: Region | str, locale: Locale | str, slot_type: str
-    ) -> ApiResponse:
+    def get_item_appearance_slot(self, *, region: Region | str, locale: Locale | str, slot_type: str) -> ApiResponse:
         """Get item appearances for a slot (e.g. ``HEAD``, ``CHEST``, ``SHOULDER``)."""
         return self._static_get(region, locale, f"/data/wow/item-appearance/slot/{slot_type}")
 
@@ -562,9 +556,7 @@ class WowGameData:
         """Get item appearances for a slot (e.g. ``HEAD``, ``CHEST``, ``SHOULDER``)."""
         return await self._static_get_async(region, locale, f"/data/wow/item-appearance/slot/{slot_type}")
 
-    def search_item_appearance(
-        self, *, region: Region | str, locale: Locale | str, **filters: Any
-    ) -> ApiResponse:
+    def search_item_appearance(self, *, region: Region | str, locale: Locale | str, **filters: Any) -> ApiResponse:
         """Search for item appearances."""
         return self._static_get(region, locale, "/data/wow/search/item-appearance", **filters)
 
