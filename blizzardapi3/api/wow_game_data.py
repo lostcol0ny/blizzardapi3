@@ -968,43 +968,43 @@ class WowGameData:
 
     def get_mythic_keystone_periods_index(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get an index of mythic keystone periods."""
-        return self._static_get(region, locale, "/data/wow/mythic-keystone/period/index")
+        return self._dynamic_get(region, locale, "/data/wow/mythic-keystone/period/index")
 
     async def get_mythic_keystone_periods_index_async(
         self, *, region: Region | str, locale: Locale | str
     ) -> ApiResponse:
         """Get an index of mythic keystone periods."""
-        return await self._static_get_async(region, locale, "/data/wow/mythic-keystone/period/index")
+        return await self._dynamic_get_async(region, locale, "/data/wow/mythic-keystone/period/index")
 
     def get_mythic_keystone_period(self, *, region: Region | str, locale: Locale | str, period_id: int) -> ApiResponse:
         """Get a mythic keystone period by ID."""
-        return self._static_get(region, locale, f"/data/wow/mythic-keystone/period/{period_id}")
+        return self._dynamic_get(region, locale, f"/data/wow/mythic-keystone/period/{period_id}")
 
     async def get_mythic_keystone_period_async(
         self, *, region: Region | str, locale: Locale | str, period_id: int
     ) -> ApiResponse:
         """Get a mythic keystone period by ID."""
-        return await self._static_get_async(region, locale, f"/data/wow/mythic-keystone/period/{period_id}")
+        return await self._dynamic_get_async(region, locale, f"/data/wow/mythic-keystone/period/{period_id}")
 
     def get_mythic_keystone_seasons_index(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get an index of mythic keystone seasons."""
-        return self._static_get(region, locale, "/data/wow/mythic-keystone/season/index")
+        return self._dynamic_get(region, locale, "/data/wow/mythic-keystone/season/index")
 
     async def get_mythic_keystone_seasons_index_async(
         self, *, region: Region | str, locale: Locale | str
     ) -> ApiResponse:
         """Get an index of mythic keystone seasons."""
-        return await self._static_get_async(region, locale, "/data/wow/mythic-keystone/season/index")
+        return await self._dynamic_get_async(region, locale, "/data/wow/mythic-keystone/season/index")
 
     def get_mythic_keystone_season(self, *, region: Region | str, locale: Locale | str, season_id: int) -> ApiResponse:
         """Get a mythic keystone season by ID."""
-        return self._static_get(region, locale, f"/data/wow/mythic-keystone/season/{season_id}")
+        return self._dynamic_get(region, locale, f"/data/wow/mythic-keystone/season/{season_id}")
 
     async def get_mythic_keystone_season_async(
         self, *, region: Region | str, locale: Locale | str, season_id: int
     ) -> ApiResponse:
         """Get a mythic keystone season by ID."""
-        return await self._static_get_async(region, locale, f"/data/wow/mythic-keystone/season/{season_id}")
+        return await self._dynamic_get_async(region, locale, f"/data/wow/mythic-keystone/season/{season_id}")
 
     # ------------------------------------------------------------------
     # Mythic Keystone Leaderboard
