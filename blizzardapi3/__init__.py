@@ -1,6 +1,6 @@
 """BlizzardAPI — modern Python wrapper for Blizzard's Battle.net API."""
 
-__version__ = "4.0.0"
+__version__ = "4.0.4"
 
 from .blizzard_api import BlizzardAPI
 from .core.executor import ApiResponse
