@@ -1,12 +1,13 @@
 # BlizzardAPI v3
 
-A modern, config-driven Python wrapper for the Blizzard API with full async support, type safety via Pydantic, and comprehensive error handling.
+A modern, config-driven Python wrapper for the Blizzard API with full async support, response caching, automatic retries, and comprehensive error handling.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Configuration](#configuration)
 - [Accessing Response Headers](#accessing-response-headers)
 - [Using Search Endpoints](#using-search-endpoints)
 - [Error Handling](#error-handling)
@@ -19,10 +20,12 @@ A modern, config-driven Python wrapper for the Blizzard API with full async supp
 ## Features
 
 - 🚀 **Async/Await Support** - First-class async support with both sync and async methods
-- 🔒 **Type Safety** - Full Pydantic models with IDE autocomplete
+- 🔒 **Type Hints** - Ships `py.typed`; responses are dict-like with full IDE autocomplete
 - 📝 **Config-Driven** - YAML-defined endpoints, easy to extend
 - 🎯 **Better Errors** - Specific exception types with detailed context
-- ⚡ **Efficient** - Single session management, proper resource cleanup
+- ⚡ **Response Caching** - On by default; honors `Cache-Control` so repeat calls skip the network
+- 🔁 **Automatic Retries** - Transient 429/5xx failures retried with `Retry-After` and full-jitter backoff
+- 🧵 **Concurrent Fan-Out** - `api.gather()` runs many async calls with a bounded concurrency cap
 - 📊 **Response Headers** - Access HTTP headers for caching, rate limits, and metadata
 - 🎮 **Complete Coverage** - Supports WoW, Diablo 3, Hearthstone, and StarCraft 2
 
@@ -35,7 +38,7 @@ pip install blizzardapi3
 > **Version stability:** BlizzardAPI v3 is under active development and is not yet considered stable. Breaking changes may land between minor versions as internal patterns are refined. For production use, pin to an exact version and review the [release notes](https://github.com/lostcol0ny/blizzardapi3/releases) before upgrading:
 >
 > ```bash
-> pip install blizzardapi3==3.0.5
+> pip install blizzardapi3==4.1.0
 > ```
 
 ## Quick Start
@@ -74,6 +77,26 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Configuration
+
+`BlizzardAPI` accepts a few keyword options that tune caching and reliability. All are optional and chosen so the defaults are safe for most users.
+
+```python
+api = BlizzardAPI(
+    client_id="your_id",
+    client_secret="your_secret",
+    cache=True,        # response cache (default on)
+    cache_ttl=None,    # seconds to cache responses that send no Cache-Control
+    max_retries=2,     # automatic retries on transient 429/5xx failures
+)
+```
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `cache` | `True` | Caches responses according to their `Cache-Control` header. Static game data (`max-age=86400`) is served from memory until it expires; profile data, which sends no cache directive, is not cached. Set `cache=False` to disable. |
+| `cache_ttl` | `None` | Caches responses that carry *no* `Cache-Control` (e.g. character profiles) for this many seconds — a deliberate staleness-for-speed trade you opt into. A server `no-store` / `private` is always honored regardless. |
+| `max_retries` | `2` | Bounds automatic retries on transient failures (HTTP 429 and 5xx), honoring `Retry-After` and otherwise backing off with full jitter. Set to `0` to disable and surface the error immediately. |
 
 ## Accessing Response Headers
 
@@ -336,7 +359,7 @@ import asyncio
 from blizzardapi3 import BlizzardAPI, Region, Locale
 
 async def get_multiple_achievements(api, achievement_ids):
-    """Fetch multiple achievements concurrently."""
+    """Fetch multiple achievements concurrently with a bounded concurrency cap."""
     tasks = [
         api.wow.game_data.get_achievement_async(
             region=Region.US,
@@ -345,7 +368,9 @@ async def get_multiple_achievements(api, achievement_ids):
         )
         for aid in achievement_ids
     ]
-    return await asyncio.gather(*tasks)
+    # api.gather caps in-flight requests (default 10) so a large batch
+    # doesn't overrun Blizzard's rate limiter. Results keep input order.
+    return await api.gather(*tasks, max_concurrency=10)
 
 async def main():
     async with BlizzardAPI(client_id, client_secret) as api:
