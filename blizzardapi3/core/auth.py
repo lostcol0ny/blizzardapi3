@@ -67,9 +67,10 @@ class TokenManager:
                 response_data=_safe_json(response),
             )
         data = response.json()
-        self._token = data["access_token"]
+        token: str = data["access_token"]
+        self._token = token
         self._expires_at = time.time() + data["expires_in"]
-        return self._token
+        return token
 
 
 def _oauth_url(region: str) -> str:

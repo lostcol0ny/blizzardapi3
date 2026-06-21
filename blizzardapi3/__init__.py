@@ -1,8 +1,10 @@
 """BlizzardAPI — modern Python wrapper for Blizzard's Battle.net API."""
 
-__version__ = "4.0.4"
+__version__ = "4.1.0"
 
 from .blizzard_api import BlizzardAPI
+from .core.batch import gather_limited
+from .core.cache import ResponseCache
 from .core.executor import ApiResponse
 from .exceptions import (
     AuthenticationError,
@@ -28,6 +30,8 @@ __all__ = [
     # Core
     "BlizzardAPI",
     "ApiResponse",
+    "ResponseCache",
+    "gather_limited",
     # Types
     "ClassicTrack",
     "Locale",

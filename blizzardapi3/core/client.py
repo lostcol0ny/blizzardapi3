@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable
+from typing import Self, TypeVar
+
 import httpx
 
 from ..types import Locale, Region, get_default_locale
 from .auth import TokenManager
+from .batch import gather_limited
+
+T = TypeVar("T")
 
 
 class BaseClient:
@@ -61,14 +67,30 @@ class BaseClient:
             await self._async_client.aclose()
         self._async_client = None
 
-    def __enter__(self) -> BaseClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
         self.close()
 
-    async def __aenter__(self) -> BaseClient:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *_: object) -> None:
         await self.aclose()
+
+    async def gather(self, *awaitables: Awaitable[T], max_concurrency: int = 10) -> list[T]:
+        """Run many async calls concurrently, bounded by ``max_concurrency``.
+
+        Convenience wrapper around :func:`~blizzardapi3.core.batch.gather_limited`
+        for bulk pulls::
+
+            async with BlizzardAPI(cid, secret) as api:
+                realms = await api.gather(
+                    *(api.wow.game_data.get_connected_realm_async(
+                        region="us", locale="en_US", connected_realm_id=rid)
+                      for rid in ids),
+                    max_concurrency=10,
+                )
+        """
+        return await gather_limited(*awaitables, max_concurrency=max_concurrency)

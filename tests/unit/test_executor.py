@@ -171,7 +171,7 @@ def test_execute_translates_http_errors(status: int, exc_type: type[Exception]):
         return httpx.Response(status, json={"error": "boom"})
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        executor = RequestExecutor(tm)
+        executor = RequestExecutor(tm, max_retries=0)  # isolate translation from retry
         with pytest.raises(exc_type) as exc_info:
             executor.execute(region="us", path="/x", params={"locale": "en_US"}, client=client)
 
@@ -185,7 +185,7 @@ def test_execute_rate_limit_preserves_retry_after():
         return httpx.Response(429, headers={"Retry-After": "30"}, json={"error": "rate limited"})
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        executor = RequestExecutor(tm)
+        executor = RequestExecutor(tm, max_retries=0)  # isolate translation from retry
         with pytest.raises(RateLimitError) as exc_info:
             executor.execute(region="us", path="/x", params={"locale": "en_US"}, client=client)
 
