@@ -22,9 +22,9 @@ from .cache import ResponseCache
 
 BASE_URL = "https://{region}.api.blizzard.com"
 REQUEST_TIMEOUT = 30.0
-MAX_RETRIES = 2          # transient-failure retries (429/5xx), on top of the first attempt
-BACKOFF_BASE = 0.5       # seconds; exponential base for retries lacking a Retry-After
-BACKOFF_CAP = 8.0        # seconds; ceiling for computed (non-Retry-After) backoff
+MAX_RETRIES = 2  # transient-failure retries (429/5xx), on top of the first attempt
+BACKOFF_BASE = 0.5  # seconds; exponential base for retries lacking a Retry-After
+BACKOFF_CAP = 8.0  # seconds; ceiling for computed (non-Retry-After) backoff
 
 
 class ApiResponse(dict):

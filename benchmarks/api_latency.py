@@ -34,8 +34,8 @@ from blizzardapi3 import BlizzardAPI
 
 REGION = "us"
 LOCALE = "en_US"
-REPEATS = 10          # how many times to refetch one static endpoint
-FANOUT = 15           # how many connected realms to pull in the serial/concurrent test
+REPEATS = 10  # how many times to refetch one static endpoint
+FANOUT = 15  # how many connected realms to pull in the serial/concurrent test
 MAX_CONCURRENCY = 10  # semaphore bound — stay well under Blizzard's 100 req/s
 
 
@@ -68,7 +68,7 @@ def repeat_latency(api: BlizzardAPI) -> None:
         timings.append(time.perf_counter() - t0)
 
     cold, warm = timings[0], timings[1:]
-    print("\n[1] Repeat-call latency  (get_achievement, same args x%d)" % REPEATS)
+    print(f"\n[1] Repeat-call latency  (get_achievement, same args x{REPEATS})")
     print(f"    cold (1st):   {_ms(cold)}   <- includes token fetch + new connection")
     print(f"    warm median:  {_ms(statistics.median(warm))}   <- pooled connection, but STILL a round-trip")
     print(f"    warm min/max: {_ms(min(warm))} / {_ms(max(warm))}")
@@ -86,11 +86,10 @@ async def concurrent_fanout(client_id: str, secret: str, ids: list[int]) -> floa
     sem = asyncio.Semaphore(MAX_CONCURRENCY)
 
     async with BlizzardAPI(client_id, secret, region=REGION) as api:
+
         async def one(rid: int) -> None:
             async with sem:
-                await api.wow.game_data.get_connected_realm_async(
-                    region=REGION, locale=LOCALE, connected_realm_id=rid
-                )
+                await api.wow.game_data.get_connected_realm_async(region=REGION, locale=LOCALE, connected_realm_id=rid)
 
         # Warm the token once so the gather measures request fan-out, not auth.
         await api.wow.game_data.get_connected_realms_index_async(region=REGION, locale=LOCALE)

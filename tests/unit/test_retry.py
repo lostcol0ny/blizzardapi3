@@ -35,7 +35,9 @@ def _counter():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("status, retryable", [(429, True), (500, True), (503, True), (400, False), (404, False), (200, False)])
+@pytest.mark.parametrize(
+    "status, retryable", [(429, True), (500, True), (503, True), (400, False), (404, False), (200, False)]
+)
 def test_is_retryable(status: int, retryable: bool):
     assert _is_retryable(status) is retryable
 

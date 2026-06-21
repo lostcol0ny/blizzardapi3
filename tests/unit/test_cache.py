@@ -112,7 +112,9 @@ def test_cache_hit_skips_second_network_call():
     executor = RequestExecutor(_token_manager(), cache=cache)
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         first = executor.execute(region="us", path="/data/wow/achievement/6", params={"locale": "en_US"}, client=client)
-        second = executor.execute(region="us", path="/data/wow/achievement/6", params={"locale": "en_US"}, client=client)
+        second = executor.execute(
+            region="us", path="/data/wow/achievement/6", params={"locale": "en_US"}, client=client
+        )
 
     assert first["id"] == second["id"] == 6
     assert len(calls) == 1  # second served from cache
@@ -143,12 +145,16 @@ def test_user_token_request_bypasses_cache():
     executor = RequestExecutor(_token_manager(), cache=ResponseCache())
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         executor.execute(
-            region="us", path="/profile/user/wow",
-            params={"locale": "en_US", "access_token": "usertoken"}, client=client,
+            region="us",
+            path="/profile/user/wow",
+            params={"locale": "en_US", "access_token": "usertoken"},
+            client=client,
         )
         executor.execute(
-            region="us", path="/profile/user/wow",
-            params={"locale": "en_US", "access_token": "usertoken"}, client=client,
+            region="us",
+            path="/profile/user/wow",
+            params={"locale": "en_US", "access_token": "usertoken"},
+            client=client,
         )
 
     assert len(calls) == 2  # user-token responses are never cached
@@ -164,7 +170,11 @@ async def test_async_cache_hit_skips_second_network_call():
 
     executor = RequestExecutor(_token_manager(), cache=ResponseCache())
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        await executor.execute_async(region="us", path="/data/wow/achievement/42", params={"locale": "en_US"}, client=client)
-        await executor.execute_async(region="us", path="/data/wow/achievement/42", params={"locale": "en_US"}, client=client)
+        await executor.execute_async(
+            region="us", path="/data/wow/achievement/42", params={"locale": "en_US"}, client=client
+        )
+        await executor.execute_async(
+            region="us", path="/data/wow/achievement/42", params={"locale": "en_US"}, client=client
+        )
 
     assert len(calls) == 1
