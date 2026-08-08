@@ -53,6 +53,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Release $GITHUB_REF_NAME" \
             --generate-notes
