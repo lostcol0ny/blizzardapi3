@@ -5,7 +5,7 @@ __version__ = "4.1.0"
 from .blizzard_api import BlizzardAPI
 from .core.batch import gather_limited
 from .core.cache import ResponseCache
-from .core.executor import ApiResponse
+from .core.response import ApiResponse
 from .exceptions import (
     AuthenticationError,
     BadRequestError,

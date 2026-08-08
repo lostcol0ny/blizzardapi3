@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time as _time
 
 import httpx
@@ -10,7 +11,8 @@ import pytest
 
 from blizzardapi3.core.auth import TokenManager
 from blizzardapi3.core.cache import ResponseCache, _make_key, _max_age
-from blizzardapi3.core.executor import ApiResponse, RequestExecutor
+from blizzardapi3.core.executor import RequestExecutor
+from blizzardapi3.core.response import RawResponse
 from blizzardapi3.exceptions import NotFoundError
 
 
@@ -49,50 +51,49 @@ def test_max_age_zero_is_not_cached():
 # ---------------------------------------------------------------------------
 
 
-def _resp(data, headers):
-    return ApiResponse(data, headers, 200)
+def _raw(data, headers):
+    return RawResponse(json.dumps(data).encode(), headers, 200)
 
 
 def test_store_and_get_roundtrip():
     cache = ResponseCache()
-    resp = _resp({"id": 6}, {"cache-control": "max-age=100"})
-    cache.store("us", "/a", {"locale": "en_US"}, resp)
-    assert cache.get("us", "/a", {"locale": "en_US"})["id"] == 6
+    cache.store("us", "/a", {"locale": "en_US"}, _raw({"id": 6}, {"cache-control": "max-age=100"}))
+    assert cache.get("us", "/a", {"locale": "en_US"}).parse()["id"] == 6
 
 
 def test_param_order_does_not_affect_key():
     cache = ResponseCache()
-    resp = _resp({"id": 6}, {"cache-control": "max-age=100"})
-    cache.store("us", "/a", {"namespace": "static-us", "locale": "en_US"}, resp)
+    raw = _raw({"id": 6}, {"cache-control": "max-age=100"})
+    cache.store("us", "/a", {"namespace": "static-us", "locale": "en_US"}, raw)
     assert cache.get("us", "/a", {"locale": "en_US", "namespace": "static-us"}) is not None
 
 
 def test_uncacheable_response_is_not_stored():
     cache = ResponseCache()
-    cache.store("us", "/a", {}, _resp({"id": 6}, {}))  # no cache-control
+    cache.store("us", "/a", {}, _raw({"id": 6}, {}))  # no cache-control
     assert cache.get("us", "/a", {}) is None
 
 
 def test_default_ttl_caches_header_less_response():
     cache = ResponseCache(default_ttl=300)
-    cache.store("us", "/profile", {}, _resp({"name": "Beyloc"}, {}))
-    assert cache.get("us", "/profile", {})["name"] == "Beyloc"
+    cache.store("us", "/profile", {}, _raw({"name": "Beyloc"}, {}))
+    assert cache.get("us", "/profile", {}).parse()["name"] == "Beyloc"
 
 
 def test_expired_entry_is_evicted_on_get():
     cache = ResponseCache()
-    cache.store("us", "/a", {}, _resp({"id": 6}, {"cache-control": "max-age=1"}))
+    cache.store("us", "/a", {}, _raw({"id": 6}, {"cache-control": "max-age=1"}))
     key = _make_key("us", "/a", {})
     # Force expiry by rewriting the stored deadline into the past.
-    response, _ = cache._store[key]
-    cache._store[key] = (response, _time.monotonic() - 1)
+    raw, _ = cache._store[key]
+    cache._store[key] = (raw, _time.monotonic() - 1)
     assert cache.get("us", "/a", {}) is None
 
 
 def test_lru_eviction_respects_max_entries():
     cache = ResponseCache(max_entries=2)
     for i in range(3):
-        cache.store("us", f"/a{i}", {}, _resp({"id": i}, {"cache-control": "max-age=100"}))
+        cache.store("us", f"/a{i}", {}, _raw({"id": i}, {"cache-control": "max-age=100"}))
     # First inserted should have been evicted.
     assert cache.get("us", "/a0", {}) is None
     assert cache.get("us", "/a2", {}) is not None
@@ -294,3 +295,64 @@ async def test_user_token_calls_are_never_shared():
         )
 
     assert len(calls) == 5, "caller-scoped responses must not be served to a different caller"
+
+
+# ---------------------------------------------------------------------------
+# Caller isolation
+# ---------------------------------------------------------------------------
+
+
+def _nested_handler(calls: list[httpx.Request]):
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(
+            200,
+            json={"realms": [{"name": "Illidan"}]},
+            headers={"cache-control": "max-age=100"},
+        )
+
+    return handler
+
+
+def test_mutating_a_cached_response_does_not_affect_the_next_reader():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache())
+
+    with httpx.Client(transport=httpx.MockTransport(_nested_handler(calls))) as client:
+        first = executor.execute(region="us", path="/data/wow/realm/index", params={}, client=client)
+        first["realms"][0]["name"] = "poisoned"
+        first.headers["cache-control"] = "poisoned"
+        second = executor.execute(region="us", path="/data/wow/realm/index", params={}, client=client)
+
+    assert len(calls) == 1, "the second call must still be a cache hit"
+    assert second is not first
+    assert second["realms"][0]["name"] == "Illidan"
+    assert second.headers["cache-control"] == "max-age=100"
+
+
+@pytest.mark.asyncio
+async def test_coalesced_callers_do_not_share_one_response_object():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache())
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        await asyncio.sleep(0.02)  # hold the leader open so followers pile up
+        return httpx.Response(
+            200,
+            json={"realms": [{"name": "Illidan"}]},
+            headers={"cache-control": "max-age=100"},
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        results = await asyncio.gather(
+            *(
+                executor.execute_async(region="us", path="/data/wow/realm/index", params={}, client=client)
+                for _ in range(10)
+            )
+        )
+
+    assert len(calls) == 1
+    results[0]["realms"][0]["name"] = "poisoned"
+    assert all(r["realms"][0]["name"] == "Illidan" for r in results[1:])
+    assert len({id(r) for r in results}) == 10

@@ -7,7 +7,8 @@ import pytest
 
 from blizzardapi3.core.auth import TokenManager
 from blizzardapi3.core.cache import ResponseCache
-from blizzardapi3.core.executor import ApiResponse, RequestExecutor, _RequestPlan
+from blizzardapi3.core.executor import RequestExecutor, _RequestPlan
+from blizzardapi3.core.response import ApiResponse
 from blizzardapi3.exceptions import (
     BadRequestError,
     ForbiddenError,
