@@ -939,25 +939,25 @@ class WowGameData:
 
     def get_mythic_keystone_dungeons_index(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get an index of mythic keystone dungeons."""
-        return self._static_get(region, locale, "/data/wow/mythic-keystone/dungeon/index")
+        return self._dynamic_get(region, locale, "/data/wow/mythic-keystone/dungeon/index")
 
     async def get_mythic_keystone_dungeons_index_async(
         self, *, region: Region | str, locale: Locale | str
     ) -> ApiResponse:
         """Get an index of mythic keystone dungeons."""
-        return await self._static_get_async(region, locale, "/data/wow/mythic-keystone/dungeon/index")
+        return await self._dynamic_get_async(region, locale, "/data/wow/mythic-keystone/dungeon/index")
 
     def get_mythic_keystone_dungeon(
         self, *, region: Region | str, locale: Locale | str, dungeon_id: int
     ) -> ApiResponse:
         """Get a mythic keystone dungeon by ID."""
-        return self._static_get(region, locale, f"/data/wow/mythic-keystone/dungeon/{dungeon_id}")
+        return self._dynamic_get(region, locale, f"/data/wow/mythic-keystone/dungeon/{dungeon_id}")
 
     async def get_mythic_keystone_dungeon_async(
         self, *, region: Region | str, locale: Locale | str, dungeon_id: int
     ) -> ApiResponse:
         """Get a mythic keystone dungeon by ID."""
-        return await self._static_get_async(region, locale, f"/data/wow/mythic-keystone/dungeon/{dungeon_id}")
+        return await self._dynamic_get_async(region, locale, f"/data/wow/mythic-keystone/dungeon/{dungeon_id}")
 
     def get_mythic_keystone_index(self, *, region: Region | str, locale: Locale | str) -> ApiResponse:
         """Get the mythic keystone index."""
