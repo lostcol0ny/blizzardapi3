@@ -11,6 +11,7 @@ from blizzardapi3.core.executor import RequestExecutor, _RequestPlan
 from blizzardapi3.core.response import ApiResponse
 from blizzardapi3.exceptions import (
     BadRequestError,
+    BlizzardAPIError,
     ForbiddenError,
     NotFoundError,
     RateLimitError,
@@ -166,7 +167,7 @@ def test_execute_user_token_is_used_and_not_retried():
         (418, RequestError),
     ],
 )
-def test_execute_translates_http_errors(status: int, exc_type: type[Exception]):
+def test_execute_translates_http_errors(status: int, exc_type: type[BlizzardAPIError]):
     tm = _token_manager_with()
 
     def handler(request: httpx.Request) -> httpx.Response:

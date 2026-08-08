@@ -58,7 +58,9 @@ def _raw(data, headers):
 def test_store_and_get_roundtrip():
     cache = ResponseCache()
     cache.store("us", "/a", {"locale": "en_US"}, _raw({"id": 6}, {"cache-control": "max-age=100"}))
-    assert cache.get("us", "/a", {"locale": "en_US"}).parse()["id"] == 6
+    cached = cache.get("us", "/a", {"locale": "en_US"})
+    assert cached is not None
+    assert cached.parse()["id"] == 6
 
 
 def test_param_order_does_not_affect_key():
@@ -77,7 +79,9 @@ def test_uncacheable_response_is_not_stored():
 def test_default_ttl_caches_header_less_response():
     cache = ResponseCache(default_ttl=300)
     cache.store("us", "/profile", {}, _raw({"name": "Beyloc"}, {}))
-    assert cache.get("us", "/profile", {}).parse()["name"] == "Beyloc"
+    cached = cache.get("us", "/profile", {})
+    assert cached is not None
+    assert cached.parse()["name"] == "Beyloc"
 
 
 def test_expired_entry_is_evicted_on_get():
@@ -276,7 +280,9 @@ async def test_cancelling_one_caller_does_not_cancel_the_others():
 
     assert len(calls) == 1
     assert isinstance(results[0], asyncio.CancelledError)
-    assert all(r["id"] == 6 for r in results[1:])
+    # isinstance doubles as the "nobody else raised" assertion: a BaseException
+    # here would fail the check rather than blow up on subscripting.
+    assert all(isinstance(r, dict) and r["id"] == 6 for r in results[1:])
 
 
 @pytest.mark.asyncio
