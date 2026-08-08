@@ -90,7 +90,7 @@ class RequestExecutor:
             response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
             if response.status_code == 401 and not user_token:
-                self._tokens.invalidate()
+                self._tokens.invalidate(token)
                 token = self._tokens.get_token(region, client)
                 response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
@@ -128,7 +128,7 @@ class RequestExecutor:
             response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
             if response.status_code == 401 and not user_token:
-                self._tokens.invalidate()
+                self._tokens.invalidate(token)
                 token = await self._tokens.get_token_async(region, client)
                 response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
