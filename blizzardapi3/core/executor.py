@@ -18,7 +18,8 @@ from ..exceptions import (
     ServerError,
 )
 from .auth import TokenManager
-from .cache import ResponseCache
+from .cache import CacheKey, ResponseCache, _make_key
+from .response import ApiResponse, RawResponse
 
 BASE_URL = "https://{region}.api.blizzard.com"
 REQUEST_TIMEOUT = 30.0
@@ -27,31 +28,73 @@ BACKOFF_BASE = 0.5  # seconds; exponential base for retries lacking a Retry-Afte
 BACKOFF_CAP = 8.0  # seconds; ceiling for computed (non-Retry-After) backoff
 
 
-class ApiResponse(dict):
-    """dict with ``.headers`` and ``.status_code`` attached.
+class _RequestPlan:
+    """Every decision for one request, resolved once and without I/O.
 
-    Preserves v3's bracket-access contract while exposing HTTP metadata.
+    The sync and async executors differ only in how they perform I/O. Keeping
+    the decisions here means there is one place to change policy, and it can be
+    tested without a transport.
     """
 
-    def __init__(self, data: dict[str, Any], headers: dict[str, str], status_code: int):
-        super().__init__(data)
-        self._headers = headers
-        self._status_code = status_code
+    __slots__ = ("cache", "max_retries", "params", "path", "region", "url", "user_token")
 
-    @property
-    def headers(self) -> dict[str, str]:
-        return self._headers
+    def __init__(
+        self,
+        region: str,
+        path: str,
+        params: dict[str, Any],
+        cache: ResponseCache | None,
+        max_retries: int,
+    ):
+        user_token = params.get("access_token")
+        if "access_token" in params:
+            # Copy rather than pop: the caller's dict is theirs, not ours.
+            params = {k: v for k, v in params.items() if k != "access_token"}
 
-    @property
-    def status_code(self) -> int:
-        return self._status_code
+        self.region = region
+        self.path = path
+        self.params = params
+        self.url = f"{BASE_URL.format(region=region)}{path}"
+        self.user_token = user_token
+        # User-token requests bypass the cache entirely: their responses may be
+        # caller-scoped, so they must never be stored under a shared key nor
+        # served to a different caller.
+        self.cache = cache if user_token is None else None
+        self.max_retries = max_retries
+
+    def cached(self) -> RawResponse | None:
+        if self.cache is None:
+            return None
+        return self.cache.get(self.region, self.path, self.params)
+
+    def cache_key(self) -> CacheKey:
+        return _make_key(self.region, self.path, self.params)
+
+    def should_reauth(self, response: httpx.Response) -> bool:
+        """A 401 is worth re-authenticating only for tokens we manage."""
+        return response.status_code == 401 and not self.user_token
+
+    def retry_delay(self, response: httpx.Response, attempt: int) -> float | None:
+        """Seconds to wait before retrying, or ``None`` to accept this response."""
+        if attempt >= self.max_retries or not _is_retryable(response.status_code):
+            return None
+        return _retry_delay(response, attempt)
+
+    def finish(self, response: httpx.Response) -> RawResponse:
+        raw = _decode(response, self.url)
+        if self.cache is not None:
+            self.cache.store(self.region, self.path, self.params, raw)
+        return raw
 
 
 class RequestExecutor:
     """Executes a request with automatic token refresh on 401.
 
-    Sync and async paths are ~15 lines each. All error translation,
-    JSON decoding, and retry policy is shared via :func:`_decode`.
+    Both paths are pure I/O drivers over :class:`_RequestPlan`, which owns the
+    caching, re-auth, retry, and decoding policy. They deal in
+    :class:`RawResponse` throughout and parse exactly once, on the way out — the
+    single point where a caller stops sharing anything with the cache or with
+    the peers it was coalesced against.
     """
 
     def __init__(
@@ -63,6 +106,10 @@ class RequestExecutor:
         self._tokens = token_manager
         self._cache = cache
         self._max_retries = max_retries
+        self._inflight: dict[CacheKey, asyncio.Task[RawResponse]] = {}
+
+    def _plan(self, region: str, path: str, params: dict[str, Any]) -> _RequestPlan:
+        return _RequestPlan(region, path, params, self._cache, self._max_retries)
 
     def execute(
         self,
@@ -72,38 +119,11 @@ class RequestExecutor:
         params: dict[str, Any],
         client: httpx.Client,
     ) -> ApiResponse:
-        url = f"{BASE_URL.format(region=region)}{path}"
-        user_token = params.pop("access_token", None)
-
-        # User-token requests bypass the cache entirely: their responses may be
-        # caller-scoped, so they must never be stored under a shared key nor
-        # served to a different caller.
-        cache = self._cache if user_token is None else None
-        if cache is not None:
-            cached = cache.get(region, path, params)
-            if cached is not None:
-                return cached
-
-        token = user_token or self._tokens.get_token(region, client)
-
-        for attempt in range(self._max_retries + 1):
-            response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
-
-            if response.status_code == 401 and not user_token:
-                self._tokens.invalidate()
-                token = self._tokens.get_token(region, client)
-                response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
-
-            if attempt < self._max_retries and _is_retryable(response.status_code):
-                time.sleep(_retry_delay(response, attempt))
-                continue
-
-            result = _decode(response, url)
-            if cache is not None:
-                cache.store(region, path, params, result)
-            return result
-
-        raise RuntimeError("unreachable: retry loop always returns or raises")
+        plan = self._plan(region, path, params)
+        raw = plan.cached()
+        if raw is None:
+            raw = self._send(plan, client)
+        return raw.parse()
 
     async def execute_async(
         self,
@@ -113,35 +133,62 @@ class RequestExecutor:
         params: dict[str, Any],
         client: httpx.AsyncClient,
     ) -> ApiResponse:
-        url = f"{BASE_URL.format(region=region)}{path}"
-        user_token = params.pop("access_token", None)
+        plan = self._plan(region, path, params)
+        raw = plan.cached()
+        if raw is None:
+            raw = await self._coalesced_async(plan, client)
+        return raw.parse()
 
-        cache = self._cache if user_token is None else None
-        if cache is not None:
-            cached = cache.get(region, path, params)
-            if cached is not None:
-                return cached
+    def _send(self, plan: _RequestPlan, client: httpx.Client) -> RawResponse:
+        token = plan.user_token or self._tokens.get_token(plan.region, client)
+        attempt = 0
+        while True:
+            response = client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        token = user_token or await self._tokens.get_token_async(region, client)
+            if plan.should_reauth(response):
+                self._tokens.invalidate(token)
+                token = self._tokens.get_token(plan.region, client)
+                response = client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        for attempt in range(self._max_retries + 1):
-            response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
+            delay = plan.retry_delay(response, attempt)
+            if delay is None:
+                return plan.finish(response)
+            time.sleep(delay)
+            attempt += 1
 
-            if response.status_code == 401 and not user_token:
-                self._tokens.invalidate()
-                token = await self._tokens.get_token_async(region, client)
-                response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
+    async def _coalesced_async(self, plan: _RequestPlan, client: httpx.AsyncClient) -> RawResponse:
+        if plan.cache is None:
+            return await self._send_async(plan, client)
 
-            if attempt < self._max_retries and _is_retryable(response.status_code):
-                await asyncio.sleep(_retry_delay(response, attempt))
-                continue
+        # Cacheable and not yet cached: a fan-out over one resource would
+        # otherwise send N identical requests, because every caller misses
+        # before any of them stores. Share one in-flight request instead.
+        key = plan.cache_key()
+        leader = self._inflight.get(key)
+        if leader is None:
+            leader = asyncio.ensure_future(self._send_async(plan, client))
+            self._inflight[key] = leader
+            leader.add_done_callback(lambda _: self._inflight.pop(key, None))
+        # Shielded: a caller that gets cancelled must not cancel the request
+        # the other callers are waiting on.
+        return await asyncio.shield(leader)
 
-            result = _decode(response, url)
-            if cache is not None:
-                cache.store(region, path, params, result)
-            return result
+    async def _send_async(self, plan: _RequestPlan, client: httpx.AsyncClient) -> RawResponse:
+        token = plan.user_token or await self._tokens.get_token_async(plan.region, client)
+        attempt = 0
+        while True:
+            response = await client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        raise RuntimeError("unreachable: retry loop always returns or raises")
+            if plan.should_reauth(response):
+                self._tokens.invalidate(token)
+                token = await self._tokens.get_token_async(plan.region, client)
+                response = await client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
+
+            delay = plan.retry_delay(response, attempt)
+            if delay is None:
+                return plan.finish(response)
+            await asyncio.sleep(delay)
+            attempt += 1
 
 
 def _auth(token: str) -> dict[str, str]:
@@ -171,14 +218,14 @@ def _retry_delay(response: httpx.Response, attempt: int) -> float:
     return random.uniform(0, min(BACKOFF_CAP, BACKOFF_BASE * 2**attempt))
 
 
-def _decode(response: httpx.Response, url: str) -> ApiResponse:
-    """Turn an ``httpx.Response`` into :class:`ApiResponse` or raise an error.
+def _decode(response: httpx.Response, url: str) -> RawResponse:
+    """Turn an ``httpx.Response`` into :class:`RawResponse` or raise an error.
 
-    Works for both sync and async — ``httpx.Response.json()`` is synchronous
-    in both transports.
+    Works for both sync and async — the body has already been read by the time
+    a response object exists in either transport.
     """
     if response.status_code == 200:
-        return ApiResponse(response.json(), dict(response.headers), 200)
+        return RawResponse(response.content, dict(response.headers), 200)
 
     try:
         body = response.json()

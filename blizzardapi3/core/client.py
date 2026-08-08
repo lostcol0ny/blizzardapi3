@@ -3,15 +3,37 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable
-from typing import Self, TypeVar
+from importlib.metadata import PackageNotFoundError, version
+from typing import Any, Self, TypeVar
 
 import httpx
 
 from ..types import Locale, Region, get_default_locale
 from .auth import TokenManager
 from .batch import gather_limited
+from .executor import REQUEST_TIMEOUT
 
 T = TypeVar("T")
+
+try:
+    _VERSION = version("blizzardapi3")
+except PackageNotFoundError:  # running from a source checkout
+    _VERSION = "unknown"
+
+USER_AGENT = f"blizzardapi3/{_VERSION} (+https://github.com/lostcol0ny/blizzardapi3)"
+
+# Every value is spelled out because httpx.Limits does not merge with its own
+# defaults — passing keepalive_expiry alone would silently make max_connections
+# unlimited. The connection count matches httpx's default; only the expiry is
+# tuned, because a cold connection to Blizzard costs ~140 ms of TCP and TLS
+# handshake and httpx discards idle ones after 5 s, so anything polling on a
+# slower interval than that re-handshakes on every single call.
+LIMITS = httpx.Limits(max_connections=100, max_keepalive_connections=20, keepalive_expiry=30.0)
+
+
+def _client_kwargs() -> dict[str, Any]:
+    """Shared configuration, so the sync and async sessions cannot drift apart."""
+    return {"limits": LIMITS, "timeout": REQUEST_TIMEOUT, "headers": {"User-Agent": USER_AGENT}}
 
 
 class BaseClient:
@@ -48,13 +70,13 @@ class BaseClient:
     @property
     def sync_client(self) -> httpx.Client:
         if self._sync_client is None or self._sync_client.is_closed:
-            self._sync_client = httpx.Client()
+            self._sync_client = httpx.Client(**_client_kwargs())
         return self._sync_client
 
     @property
     def async_client(self) -> httpx.AsyncClient:
         if self._async_client is None or self._async_client.is_closed:
-            self._async_client = httpx.AsyncClient()
+            self._async_client = httpx.AsyncClient(**_client_kwargs())
         return self._async_client
 
     def close(self) -> None:

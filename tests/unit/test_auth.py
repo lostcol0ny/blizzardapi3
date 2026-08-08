@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import threading
 import time
 
 import httpx
@@ -83,3 +85,61 @@ async def test_get_token_async_raises_on_non_200():
     async with httpx.AsyncClient(transport=transport) as client:
         with pytest.raises(TokenError):
             await tm.get_token_async("us", client)
+
+
+def _counting_transport(delay: float = 0.0) -> tuple[httpx.MockTransport, list[int]]:
+    """Transport issuing a uniquely numbered token per call, plus a POST counter."""
+    count = [0]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        count[0] += 1
+        if delay:
+            time.sleep(delay)
+        return httpx.Response(200, json={"access_token": f"T{count[0]}", "expires_in": 86400})
+
+    return httpx.MockTransport(handler), count
+
+
+def test_invalidate_ignores_a_token_that_is_no_longer_current():
+    tm = TokenManager("id", "secret")
+    tm._token = "fresh"
+    tm._expires_at = time.time() + 10_000
+
+    tm.invalidate("stale")
+    assert tm.is_valid() is True, "a late 401 must not discard a token someone else refreshed"
+
+    tm.invalidate("fresh")
+    assert tm.is_valid() is False
+
+
+@pytest.mark.asyncio
+async def test_concurrent_cold_callers_share_one_token_request():
+    tm = TokenManager("id", "secret")
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        count[0] += 1
+        await asyncio.sleep(0.01)  # hold the acquisition open so callers pile up
+        return httpx.Response(200, json={"access_token": f"T{count[0]}", "expires_in": 86400})
+
+    count = [0]
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        tokens = await asyncio.gather(*(tm.get_token_async("us", client) for _ in range(50)))
+
+    assert count[0] == 1
+    assert set(tokens) == {"T1"}
+
+
+def test_concurrent_threads_share_one_token_request():
+    tm = TokenManager("id", "secret")
+    transport, count = _counting_transport(delay=0.01)
+    tokens: list[str] = []
+
+    with httpx.Client(transport=transport) as client:
+        threads = [threading.Thread(target=lambda: tokens.append(tm.get_token("us", client))) for _ in range(20)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    assert count[0] == 1
+    assert set(tokens) == {"T1"}

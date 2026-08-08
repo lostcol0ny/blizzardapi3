@@ -24,7 +24,8 @@ from __future__ import annotations
 from typing import Any
 
 from ..core.client import BaseClient
-from ..core.executor import ApiResponse, RequestExecutor
+from ..core.executor import RequestExecutor
+from ..core.response import ApiResponse
 from ..types import ClassicTrack, Locale, Region
 
 

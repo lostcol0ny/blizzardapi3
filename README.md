@@ -1,6 +1,6 @@
 # BlizzardAPI v3
 
-A modern, config-driven Python wrapper for the Blizzard API with full async support, response caching, automatic retries, and comprehensive error handling.
+A modern Python wrapper for the Blizzard API with full async support, response caching, automatic retries, and comprehensive error handling.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ A modern, config-driven Python wrapper for the Blizzard API with full async supp
 
 - 🚀 **Async/Await Support** - First-class async support with both sync and async methods
 - 🔒 **Type Hints** - Ships `py.typed`; responses are dict-like with full IDE autocomplete
-- 📝 **Config-Driven** - YAML-defined endpoints, easy to extend
+- 📝 **Explicit Endpoints** - Every endpoint is a real method, so autocomplete and go-to-definition just work
 - 🎯 **Better Errors** - Specific exception types with detailed context
 - ⚡ **Response Caching** - On by default; honors `Cache-Control` so repeat calls skip the network
 - 🔁 **Automatic Retries** - Transient 429/5xx failures retried with `Retry-After` and full-jitter backoff
@@ -525,35 +525,36 @@ git clone https://github.com/lostcol0ny/blizzardapi3.git
 cd blizzardapi3
 
 # Install development dependencies
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
 # Run tests
 pytest
 
-# Format code
+# Format and lint
 black .
 ruff check .
-
-# Regenerate stub files for IDE autocomplete (after modifying YAML configs)
-python scripts/generate_stubs.py
+pyright
 ```
 
 ### IDE Autocomplete
 
-BlizzardAPI uses `.pyi` stub files to provide full IDE autocomplete for all dynamically generated API methods. If you modify the YAML endpoint configurations, run the stub generator to update the type hints:
-
-```bash
-python scripts/generate_stubs.py
-```
-
-This generates stub files in `blizzardapi3/api/` for each game API.
+Autocomplete works out of the box, with no generation step. Every endpoint is
+an ordinary method with a real signature, and the package ships `py.typed`, so
+editors and type checkers read the annotations directly from the source.
 
 ## Architecture
 
-BlizzardAPI v3 uses a config-driven architecture:
+- **Hand-Written Endpoints** - Each endpoint is an explicit method rather than
+  generated at runtime, so signatures are readable in the source and editors
+  need no stub-generation step.
+- **Two Sessions, One Config** - A sync and an async `httpx` client built from
+  shared settings, with connections kept warm between calls.
+- **Response Caching** - Honors `Cache-Control`; cached bodies are stored
+  unparsed and decoded per caller, so no two callers share a response object.
+- **Request Coalescing** - Concurrent async calls for the same cacheable
+  resource share one in-flight request instead of racing.
+- **Token Management** - Concurrent callers needing a token coalesce onto a
+  single fetch rather than stampeding the OAuth endpoint.
+- **Custom Exceptions** - Detailed error hierarchy.
 
-- **YAML Endpoint Definitions** - All API endpoints defined in YAML configs
-- **Dynamic Method Generation** - Methods generated at runtime from configs
-- **Pydantic Models** - Type-safe response models
-- **Custom Exceptions** - Detailed error hierarchy
-- **Single Session** - Efficient session management with proper cleanup
+`httpx` is the only runtime dependency.
