@@ -47,11 +47,67 @@ class ApiResponse(dict):
         return self._status_code
 
 
+class _RequestPlan:
+    """Every decision for one request, resolved once and without I/O.
+
+    The sync and async executors differ only in how they perform I/O. Keeping
+    the decisions here means there is one place to change policy, and it can be
+    tested without a transport.
+    """
+
+    __slots__ = ("cache", "max_retries", "params", "path", "region", "url", "user_token")
+
+    def __init__(
+        self,
+        region: str,
+        path: str,
+        params: dict[str, Any],
+        cache: ResponseCache | None,
+        max_retries: int,
+    ):
+        user_token = params.get("access_token")
+        if "access_token" in params:
+            # Copy rather than pop: the caller's dict is theirs, not ours.
+            params = {k: v for k, v in params.items() if k != "access_token"}
+
+        self.region = region
+        self.path = path
+        self.params = params
+        self.url = f"{BASE_URL.format(region=region)}{path}"
+        self.user_token = user_token
+        # User-token requests bypass the cache entirely: their responses may be
+        # caller-scoped, so they must never be stored under a shared key nor
+        # served to a different caller.
+        self.cache = cache if user_token is None else None
+        self.max_retries = max_retries
+
+    def cached(self) -> ApiResponse | None:
+        if self.cache is None:
+            return None
+        return self.cache.get(self.region, self.path, self.params)
+
+    def should_reauth(self, response: httpx.Response) -> bool:
+        """A 401 is worth re-authenticating only for tokens we manage."""
+        return response.status_code == 401 and not self.user_token
+
+    def retry_delay(self, response: httpx.Response, attempt: int) -> float | None:
+        """Seconds to wait before retrying, or ``None`` to accept this response."""
+        if attempt >= self.max_retries or not _is_retryable(response.status_code):
+            return None
+        return _retry_delay(response, attempt)
+
+    def finish(self, response: httpx.Response) -> ApiResponse:
+        result = _decode(response, self.url)
+        if self.cache is not None:
+            self.cache.store(self.region, self.path, self.params, result)
+        return result
+
+
 class RequestExecutor:
     """Executes a request with automatic token refresh on 401.
 
-    Sync and async paths are ~15 lines each. All error translation,
-    JSON decoding, and retry policy is shared via :func:`_decode`.
+    Both paths are pure I/O drivers over :class:`_RequestPlan`, which owns the
+    caching, re-auth, retry, and decoding policy.
     """
 
     def __init__(
@@ -64,6 +120,9 @@ class RequestExecutor:
         self._cache = cache
         self._max_retries = max_retries
 
+    def _plan(self, region: str, path: str, params: dict[str, Any]) -> _RequestPlan:
+        return _RequestPlan(region, path, params, self._cache, self._max_retries)
+
     def execute(
         self,
         *,
@@ -72,38 +131,26 @@ class RequestExecutor:
         params: dict[str, Any],
         client: httpx.Client,
     ) -> ApiResponse:
-        url = f"{BASE_URL.format(region=region)}{path}"
-        user_token = params.pop("access_token", None)
+        plan = self._plan(region, path, params)
+        hit = plan.cached()
+        if hit is not None:
+            return hit
 
-        # User-token requests bypass the cache entirely: their responses may be
-        # caller-scoped, so they must never be stored under a shared key nor
-        # served to a different caller.
-        cache = self._cache if user_token is None else None
-        if cache is not None:
-            cached = cache.get(region, path, params)
-            if cached is not None:
-                return cached
+        token = plan.user_token or self._tokens.get_token(region, client)
+        attempt = 0
+        while True:
+            response = client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        token = user_token or self._tokens.get_token(region, client)
-
-        for attempt in range(self._max_retries + 1):
-            response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
-
-            if response.status_code == 401 and not user_token:
+            if plan.should_reauth(response):
                 self._tokens.invalidate(token)
                 token = self._tokens.get_token(region, client)
-                response = client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
+                response = client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-            if attempt < self._max_retries and _is_retryable(response.status_code):
-                time.sleep(_retry_delay(response, attempt))
-                continue
-
-            result = _decode(response, url)
-            if cache is not None:
-                cache.store(region, path, params, result)
-            return result
-
-        raise RuntimeError("unreachable: retry loop always returns or raises")
+            delay = plan.retry_delay(response, attempt)
+            if delay is None:
+                return plan.finish(response)
+            time.sleep(delay)
+            attempt += 1
 
     async def execute_async(
         self,
@@ -113,35 +160,26 @@ class RequestExecutor:
         params: dict[str, Any],
         client: httpx.AsyncClient,
     ) -> ApiResponse:
-        url = f"{BASE_URL.format(region=region)}{path}"
-        user_token = params.pop("access_token", None)
+        plan = self._plan(region, path, params)
+        hit = plan.cached()
+        if hit is not None:
+            return hit
 
-        cache = self._cache if user_token is None else None
-        if cache is not None:
-            cached = cache.get(region, path, params)
-            if cached is not None:
-                return cached
+        token = plan.user_token or await self._tokens.get_token_async(region, client)
+        attempt = 0
+        while True:
+            response = await client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-        token = user_token or await self._tokens.get_token_async(region, client)
-
-        for attempt in range(self._max_retries + 1):
-            response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
-
-            if response.status_code == 401 and not user_token:
+            if plan.should_reauth(response):
                 self._tokens.invalidate(token)
                 token = await self._tokens.get_token_async(region, client)
-                response = await client.get(url, params=params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
+                response = await client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
-            if attempt < self._max_retries and _is_retryable(response.status_code):
-                await asyncio.sleep(_retry_delay(response, attempt))
-                continue
-
-            result = _decode(response, url)
-            if cache is not None:
-                cache.store(region, path, params, result)
-            return result
-
-        raise RuntimeError("unreachable: retry loop always returns or raises")
+            delay = plan.retry_delay(response, attempt)
+            if delay is None:
+                return plan.finish(response)
+            await asyncio.sleep(delay)
+            attempt += 1
 
 
 def _auth(token: str) -> dict[str, str]:

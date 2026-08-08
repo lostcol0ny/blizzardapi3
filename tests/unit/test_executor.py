@@ -6,7 +6,8 @@ import httpx
 import pytest
 
 from blizzardapi3.core.auth import TokenManager
-from blizzardapi3.core.executor import ApiResponse, RequestExecutor
+from blizzardapi3.core.cache import ResponseCache
+from blizzardapi3.core.executor import ApiResponse, RequestExecutor, _RequestPlan
 from blizzardapi3.exceptions import (
     BadRequestError,
     ForbiddenError,
@@ -228,3 +229,49 @@ async def test_execute_async_translates_errors():
         executor = RequestExecutor(tm)
         with pytest.raises(NotFoundError):
             await executor.execute_async(region="us", path="/x", params={"locale": "en_US"}, client=client)
+
+
+def test_execute_does_not_mutate_the_callers_params():
+    tm = _token_manager_with()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"id": 1})
+
+    params = {"locale": "en_US", "access_token": "user-tok"}
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        RequestExecutor(tm).execute(region="us", path="/x", params=params, client=client)
+
+    assert params == {"locale": "en_US", "access_token": "user-tok"}
+
+
+class TestRequestPlan:
+    """Policy decisions, exercised without a transport."""
+
+    def test_builds_url_and_strips_the_user_token_from_params(self):
+        plan = _RequestPlan("us", "/data/wow/realm/1", {"locale": "en_US", "access_token": "u"}, None, 2)
+        assert plan.url == "https://us.api.blizzard.com/data/wow/realm/1"
+        assert plan.params == {"locale": "en_US"}
+        assert plan.user_token == "u"
+
+    def test_user_token_requests_bypass_the_cache(self):
+        cache = ResponseCache()
+        assert _RequestPlan("us", "/x", {"access_token": "u"}, cache, 2).cache is None
+        assert _RequestPlan("us", "/x", {}, cache, 2).cache is cache
+
+    def test_reauth_only_applies_to_tokens_we_manage(self):
+        unauthorized = httpx.Response(401)
+        assert _RequestPlan("us", "/x", {}, None, 2).should_reauth(unauthorized) is True
+        assert _RequestPlan("us", "/x", {"access_token": "u"}, None, 2).should_reauth(unauthorized) is False
+
+    def test_retry_delay_honors_retry_after(self):
+        plan = _RequestPlan("us", "/x", {}, None, 2)
+        assert plan.retry_delay(httpx.Response(429, headers={"retry-after": "3"}), 0) == 3.0
+
+    def test_retry_delay_is_none_once_the_budget_is_spent(self):
+        plan = _RequestPlan("us", "/x", {}, None, 2)
+        assert plan.retry_delay(httpx.Response(500), 2) is None
+
+    def test_retry_delay_is_none_for_a_response_worth_keeping(self):
+        plan = _RequestPlan("us", "/x", {}, None, 2)
+        assert plan.retry_delay(httpx.Response(200), 0) is None
+        assert plan.retry_delay(httpx.Response(404), 0) is None
