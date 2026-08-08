@@ -47,3 +47,4 @@ jobs:
           source .venv/bin/activate
           black --check .
           ruff check .
+          pyright
