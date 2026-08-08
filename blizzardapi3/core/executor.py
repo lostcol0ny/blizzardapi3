@@ -18,7 +18,7 @@ from ..exceptions import (
     ServerError,
 )
 from .auth import TokenManager
-from .cache import ResponseCache
+from .cache import CacheKey, ResponseCache, _make_key
 
 BASE_URL = "https://{region}.api.blizzard.com"
 REQUEST_TIMEOUT = 30.0
@@ -86,6 +86,9 @@ class _RequestPlan:
             return None
         return self.cache.get(self.region, self.path, self.params)
 
+    def cache_key(self) -> CacheKey:
+        return _make_key(self.region, self.path, self.params)
+
     def should_reauth(self, response: httpx.Response) -> bool:
         """A 401 is worth re-authenticating only for tokens we manage."""
         return response.status_code == 401 and not self.user_token
@@ -119,6 +122,7 @@ class RequestExecutor:
         self._tokens = token_manager
         self._cache = cache
         self._max_retries = max_retries
+        self._inflight: dict[CacheKey, asyncio.Task[ApiResponse]] = {}
 
     def _plan(self, region: str, path: str, params: dict[str, Any]) -> _RequestPlan:
         return _RequestPlan(region, path, params, self._cache, self._max_retries)
@@ -165,14 +169,31 @@ class RequestExecutor:
         if hit is not None:
             return hit
 
-        token = plan.user_token or await self._tokens.get_token_async(region, client)
+        if plan.cache is None:
+            return await self._send_async(plan, client)
+
+        # Cacheable and not yet cached: a fan-out over one resource would
+        # otherwise send N identical requests, because every caller misses
+        # before any of them stores. Share one in-flight request instead.
+        key = plan.cache_key()
+        leader = self._inflight.get(key)
+        if leader is None:
+            leader = asyncio.ensure_future(self._send_async(plan, client))
+            self._inflight[key] = leader
+            leader.add_done_callback(lambda _: self._inflight.pop(key, None))
+        # Shielded: a caller that gets cancelled must not cancel the request
+        # the other callers are waiting on.
+        return await asyncio.shield(leader)
+
+    async def _send_async(self, plan: _RequestPlan, client: httpx.AsyncClient) -> ApiResponse:
+        token = plan.user_token or await self._tokens.get_token_async(plan.region, client)
         attempt = 0
         while True:
             response = await client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
             if plan.should_reauth(response):
                 self._tokens.invalidate(token)
-                token = await self._tokens.get_token_async(region, client)
+                token = await self._tokens.get_token_async(plan.region, client)
                 response = await client.get(plan.url, params=plan.params, headers=_auth(token), timeout=REQUEST_TIMEOUT)
 
             delay = plan.retry_delay(response, attempt)

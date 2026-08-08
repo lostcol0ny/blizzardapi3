@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time as _time
 
 import httpx
@@ -10,6 +11,7 @@ import pytest
 from blizzardapi3.core.auth import TokenManager
 from blizzardapi3.core.cache import ResponseCache, _make_key, _max_age
 from blizzardapi3.core.executor import ApiResponse, RequestExecutor
+from blizzardapi3.exceptions import NotFoundError
 
 
 def _token_manager() -> TokenManager:
@@ -178,3 +180,117 @@ async def test_async_cache_hit_skips_second_network_call():
         )
 
     assert len(calls) == 1
+
+
+# ---------------------------------------------------------------------------
+# Single-flight (async)
+# ---------------------------------------------------------------------------
+
+
+def _slow_handler(calls: list[httpx.Request], status: int = 200, cacheable: bool = True):
+    """Handler slow enough that concurrent callers pile up behind the first."""
+    headers = {"cache-control": "public, max-age=86400"} if cacheable else {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        await asyncio.sleep(0.02)
+        return httpx.Response(status, json={"id": 6}, headers=headers)
+
+    return handler
+
+
+@pytest.mark.asyncio
+async def test_concurrent_calls_for_one_key_share_a_single_request():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache())
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(_slow_handler(calls))) as client:
+        results = await asyncio.gather(
+            *(
+                executor.execute_async(region="us", path="/data/wow/achievement/6", params={}, client=client)
+                for _ in range(50)
+            )
+        )
+
+    assert len(calls) == 1
+    assert all(r["id"] == 6 for r in results)
+    assert executor._inflight == {}, "the in-flight entry must be released once the request settles"
+
+
+@pytest.mark.asyncio
+async def test_distinct_keys_are_not_collapsed():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache())
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(_slow_handler(calls))) as client:
+        await asyncio.gather(
+            *(
+                executor.execute_async(region="us", path=f"/data/wow/achievement/{i}", params={}, client=client)
+                for i in range(20)
+            )
+        )
+        await asyncio.gather(
+            *(
+                executor.execute_async(region="us", path="/data/wow/realm/1", params={"locale": loc}, client=client)
+                for loc in ("en_US", "de_DE")
+            )
+        )
+
+    assert len(calls) == 22  # 20 distinct paths + 2 distinct locales
+
+
+@pytest.mark.asyncio
+async def test_followers_see_the_leaders_failure():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache(), max_retries=0)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(_slow_handler(calls, status=404))) as client:
+        results = await asyncio.gather(
+            *(
+                executor.execute_async(region="us", path="/data/wow/achievement/6", params={}, client=client)
+                for _ in range(10)
+            ),
+            return_exceptions=True,
+        )
+
+    assert len(calls) == 1
+    assert all(isinstance(r, NotFoundError) for r in results)
+
+
+@pytest.mark.asyncio
+async def test_cancelling_one_caller_does_not_cancel_the_others():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache())
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(_slow_handler(calls))) as client:
+        tasks = [
+            asyncio.ensure_future(
+                executor.execute_async(region="us", path="/data/wow/achievement/6", params={}, client=client)
+            )
+            for _ in range(5)
+        ]
+        await asyncio.sleep(0)  # let them all register against the same key
+        tasks[0].cancel()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    assert len(calls) == 1
+    assert isinstance(results[0], asyncio.CancelledError)
+    assert all(r["id"] == 6 for r in results[1:])
+
+
+@pytest.mark.asyncio
+async def test_user_token_calls_are_never_shared():
+    calls: list[httpx.Request] = []
+    executor = RequestExecutor(_token_manager(), cache=ResponseCache())
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(_slow_handler(calls))) as client:
+        await asyncio.gather(
+            *(
+                executor.execute_async(
+                    region="us", path="/profile/user/wow", params={"access_token": "user-tok"}, client=client
+                )
+                for _ in range(5)
+            )
+        )
+
+    assert len(calls) == 5, "caller-scoped responses must not be served to a different caller"
